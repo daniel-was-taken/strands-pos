@@ -8,6 +8,8 @@ tasks through tools at its disposal.
 
 from strands import Agent
 
+from delete_assistant import delete_assistant
+from insert_assistant import insert_assistant
 from schema_assistant import schema_assistant
 
 
@@ -16,7 +18,10 @@ DATABASE_SYSTEM_PROMPT = """
 You are DBControl, a database management orchestrator.
 
 You are responsible for calling the necessary tools to handle database-related requests.
-Use the schema assistant tool to process database queries and operations.
+Use these tools:
+- schema_assistant for read-only schema and SELECT queries
+- insert_assistant for insert requests
+- delete_assistant for delete requests
 
 Keep responses clear and actionable.
 """
@@ -25,14 +30,14 @@ Keep responses clear and actionable.
 database_agent = Agent(
     system_prompt=DATABASE_SYSTEM_PROMPT,
     callback_handler=None,
-    tools=[schema_assistant],
+    tools=[schema_assistant, insert_assistant, delete_assistant],
 )
 
 
 # Example usage
 if __name__ == "__main__":
     print("\nDatabase Management Strands Agent\n")
-    print("Ask a database question, and I'll route it to the schema assistant.")
+    print("Ask a database question, and I'll route it to the right assistant.")
     print("Type 'exit' to quit.")
 
     # Interactive loop
