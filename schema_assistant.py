@@ -15,11 +15,6 @@ api_key = os.environ["NEON_API_KEY"]
 SCHEMA_ASSISTANT_SYSTEM_PROMPT = f"""
 You are SchemaAssistant, responsible for running read-only queries on the database.
 
-Connection details:
-- Project ID: {project_id}
-- Database: {database}
-- Branch: {branch}
-
 Use the available MCP tools to execute read-only SELECT queries and retrieve schema information:
 - mcp_neon_get_database_tables: List all tables
 - mcp_neon_describe_table_schema: Get table schema details
@@ -54,16 +49,7 @@ def schema_assistant(query: str) -> str:
     
     try:
         print("Routed to Schema Assistant")
-        # Create MCP client using configuration from .vscode/mcp.json
-        # The MCP server is configured as an HTTP server for Neon
-        # mcp_client = MCPClient(
-        # lambda: stdio_client(
-        #     StdioServerParameters(
-        #         command="npx",
-        #         args=["-y", "@neondatabase/mcp-server-neon", "start", api_key]
-        #      )
-        #     )
-        # )
+
         mcp_client = MCPClient(
         lambda: stdio_client(
             StdioServerParameters(
