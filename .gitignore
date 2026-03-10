@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+.vscode/
+employees.sql.gz
+.neon
+skills-lock.json
+.agents/skills/neon-postgres/SKILL.md
