@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-# Database Management Strands Agent
+Database Management Strands Agent
 
 A specialized Strands agent that orchestrates database schema and management
-tasks through tools at its disposal.
+tasks through sub-agents sharing a single MCP connection.
 """
 
+import traceback
+
 from strands import Agent
+from strands.tools.executors import SequentialToolExecutor
 
-from delete_assistant import delete_assistant
-from insert_assistant import insert_assistant
-from schema_assistant import schema_assistant
+from server.neon_mcp import create_neon_mcp_client
+from server.tools.delete_assistant import create_delete_tool
+from server.tools.insert_assistant import create_insert_tool
+from server.tools.schema_assistant import create_schema_tool
 
-
-# Define a focused system prompt for database management
 DATABASE_SYSTEM_PROMPT = """
 You are DBControl, a database management orchestrator.
 
@@ -26,39 +28,45 @@ Use these tools:
 Keep responses clear and actionable.
 """
 
-# Create a file-focused agent with selected tools
-database_agent = Agent(
-    system_prompt=DATABASE_SYSTEM_PROMPT,
-    callback_handler=None,
-    tools=[schema_assistant, insert_assistant, delete_assistant],
-)
 
+def main():
+    mcp_client = create_neon_mcp_client()
 
-# Example usage
-if __name__ == "__main__":
-    print("\nDatabase Management Strands Agent\n")
-    print("Ask a database question, and I'll route it to the right assistant.")
-    print("Type 'exit' to quit.")
+    with mcp_client:
+        mcp_tools = mcp_client.list_tools_sync()
+        # for t in mcp_tools:  # Debug: print available tools
+        #     print(t.tool_name)
+        database_agent = Agent(
+            system_prompt=DATABASE_SYSTEM_PROMPT,
+            tool_executor=SequentialToolExecutor(),
+            tools=[
+                create_schema_tool(mcp_tools),
+                create_insert_tool(mcp_tools),
+                create_delete_tool(mcp_tools),
+            ],
+        )
 
-    # Interactive loop
-    while True:
-        try:
-            user_input = input("\n> ")
-            if user_input.lower() == "exit":
-                print("\nGoodbye! 👋")
+        print("\nDatabase Management Strands Agent\n")
+        print("Ask a database question, and I'll route it to the right assistant.")
+        print("Type 'exit' to quit.")
+
+        while True:
+            try:
+                user_input = input("\n> ")
+                if user_input.lower() == "exit":
+                    print("\nGoodbye!")
+                    break
+
+                response = database_agent(user_input)
+                print(str(response))
+
+            except KeyboardInterrupt:
+                print("\n\nExecution interrupted. Exiting...")
                 break
+            except Exception:
+                traceback.print_exc()
+                print("Please try asking a different question.")
 
-            response = database_agent(
-                user_input, 
-            )
-            
-            # Extract and print only the relevant content from the specialized agent's response
-            content = str(response)
-            print(content)
-            
-        except KeyboardInterrupt:
-            print("\n\nExecution interrupted. Exiting...")
-            break
-        except Exception as e:
-            print(f"\nAn error occurred: {str(e)}")
-            print("Please try asking a different question.")
+
+if __name__ == "__main__":
+    main()
