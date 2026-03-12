@@ -6,3 +6,6 @@ What is the schema of the employees database and delete employee with id=(check 
 
 (Delete + Schema tool)
 Delete employee with id=500002 and find the schema of the salary table
+
+(Schema tool)
+What is the name of employee with id 463807
