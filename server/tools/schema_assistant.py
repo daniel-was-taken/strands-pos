@@ -14,9 +14,7 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_schema_tool(mcp_tools):
-    agent = Agent(system_prompt=SCHEMA_SYSTEM_PROMPT, tools=mcp_tools)
-
+def create_schema_tool(mcp_client):
     @tool
     def schema_assistant(query: str) -> str:
         """Process and respond to read-only schema and data inspection queries.
@@ -27,18 +25,22 @@ def create_schema_tool(mcp_tools):
         Returns:
             Query results or schema details from the database
         """
-        formatted_query = f"""Query the database using the available MCP tools to answer this request:
-
-        {query}
-
-        Required connection details:
-        - Project ID: {PROJECT_ID}
-        - Database: {DATABASE}
-        - Branch: {BRANCH}
-
-        Use only read-only queries. For SQL, execute SELECT statements only."""
+        formatted_query = (
+            "Please answer this database schema request, "
+            "showing all steps and explaining clearly: "
+            f"{query}\n\n"
+            f"Required connection details:\n"
+            f"- Project ID: {PROJECT_ID}\n"
+            f"- Database: {DATABASE}\n"
+            f"- Branch: {BRANCH}\n\n"
+            "Use only read-only queries. For SQL, execute SELECT statements only."
+        )
 
         print("Routed to Schema Assistant")
+        agent = Agent(
+            system_prompt=SCHEMA_SYSTEM_PROMPT,
+            tools=[mcp_client],
+        )
         return str(agent(formatted_query))
 
     return schema_assistant
