@@ -18,25 +18,26 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_delete_tool(mcp_tools):
-    agent = Agent(system_prompt=DELETE_SYSTEM_PROMPT, tools=mcp_tools)
-
+def create_delete_tool(mcp_client):
     @tool
     def delete_assistant(query: str) -> str:
         """Process and respond to delete requests."""
-        formatted_query = f"""Handle this database delete request using the available MCP tools:
-
-        {query}
-
-        Required connection details:
-        - Project ID: {PROJECT_ID}
-        - Database: {DATABASE}
-        - Branch: {BRANCH}
-
-        If needed, inspect the target table first.
-        Only execute DELETE statements and read-only verification queries."""
+        formatted_query = (
+            "Handle this database delete request, "
+            "inspecting the target table first if needed: "
+            f"{query}\n\n"
+            f"Required connection details:\n"
+            f"- Project ID: {PROJECT_ID}\n"
+            f"- Database: {DATABASE}\n"
+            f"- Branch: {BRANCH}\n\n"
+            "Only execute DELETE statements and read-only verification queries."
+        )
 
         print("Routed to Delete Assistant")
+        agent = Agent(
+            system_prompt=DELETE_SYSTEM_PROMPT,
+            tools=[mcp_client],
+        )
         return str(agent(formatted_query))
 
     return delete_assistant
