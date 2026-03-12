@@ -212,3 +212,4 @@ employees.sql.gz
 .neon
 skills-lock.json
 .agents/skills/neon-postgres/SKILL.md
+output_log.txt
