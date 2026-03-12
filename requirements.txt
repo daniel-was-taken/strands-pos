@@ -1,4 +1,9 @@
 strands-agents 
 strands-agents-tools
-"botocore[crt]"
+botocore[crt]
 uv   
+fastapi
+uvicorn
+psycopg2-binary
+pytest
+httpx
