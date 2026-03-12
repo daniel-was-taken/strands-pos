@@ -14,7 +14,19 @@ from strands.tools.executors import SequentialToolExecutor
 from server.neon_mcp import create_neon_mcp_client
 from server.tools.delete_assistant import create_delete_tool
 from server.tools.insert_assistant import create_insert_tool
+from server.tools.safety_reviewer import (
+    create_safety_reviewer,
+    request_human_decision,
+    review_delete_request,
+)
 from server.tools.schema_assistant import create_schema_tool
+
+DESTRUCTIVE_KEYWORDS = {"delete", "remove", "drop", "truncate", "destroy"}
+
+
+def needs_safety_review(user_input: str) -> bool:
+    words = set(user_input.lower().split())
+    return bool(words & DESTRUCTIVE_KEYWORDS)
 
 DATABASE_SYSTEM_PROMPT = """
 You are DBControl, a database management orchestrator.
@@ -32,40 +44,47 @@ Keep responses clear and actionable.
 def main():
     mcp_client = create_neon_mcp_client()
 
-    with mcp_client:
-        mcp_tools = mcp_client.list_tools_sync()
-        # for t in mcp_tools:  # Debug: print available tools
-        #     print(t.tool_name)
-        database_agent = Agent(
-            system_prompt=DATABASE_SYSTEM_PROMPT,
-            tool_executor=SequentialToolExecutor(),
-            tools=[
-                create_schema_tool(mcp_tools),
-                create_insert_tool(mcp_tools),
-                create_delete_tool(mcp_tools),
-            ],
-        )
+    database_agent = Agent(
+        system_prompt=DATABASE_SYSTEM_PROMPT,
+        tool_executor=SequentialToolExecutor(),
+        tools=[
+            create_schema_tool(mcp_client),
+            create_insert_tool(mcp_client),
+            create_delete_tool(mcp_client),
+        ],
+    )
 
-        print("\nDatabase Management Strands Agent\n")
-        print("Ask a database question, and I'll route it to the right assistant.")
-        print("Type 'exit' to quit.")
+    safety_reviewer = create_safety_reviewer()
 
-        while True:
-            try:
-                user_input = input("\n> ")
-                if user_input.lower() == "exit":
-                    print("\nGoodbye!")
-                    break
+    print("\nDatabase Management Strands Agent\n")
+    print("Ask a database question, and I'll route it to the right assistant.")
+    print("Type 'exit' to quit.")
 
-                response = database_agent(user_input)
-                print(str(response))
-
-            except KeyboardInterrupt:
-                print("\n\nExecution interrupted. Exiting...")
+    while True:
+        try:
+            user_input = input("\n> ")
+            if user_input.lower() == "exit":
+                print("\nGoodbye!")
                 break
-            except Exception:
-                traceback.print_exc()
-                print("Please try asking a different question.")
+
+            if needs_safety_review(user_input):
+                is_approved, verdict = review_delete_request(
+                    safety_reviewer, user_input
+                )
+                human_approved, human_message = request_human_decision(verdict)
+                if not human_approved:
+                    print(f"Blocked. {human_message} {verdict}")
+                    continue
+
+            response = database_agent(user_input)
+            print(str(response))
+
+        except KeyboardInterrupt:
+            print("\n\nExecution interrupted. Exiting...")
+            break
+        except Exception:
+            traceback.print_exc()
+            print("Please try asking a different question.")
 
 
 if __name__ == "__main__":
