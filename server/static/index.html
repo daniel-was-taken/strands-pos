@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strands POS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 32px auto;
+      padding: 0 16px;
+      line-height: 1.4;
+    }
+
+    textarea, input, button {
+      font-size: 14px;
+    }
+
+    textarea, input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h1>Strands POS Query Console</h1>
+
+  <label for="query">Query</label>
+  <textarea id="query" rows="5" placeholder="e.g. What employee details do I need to insert?"></textarea>
+
+  <div class="row">
+    <button id="submitBtn">Submit Query</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <label for="requestId">Request ID (optional)</label>
+  <input id="requestId" placeholder="Paste request_id to check status" />
+
+  <div class="row">
+    <button id="statusBtn">Check Status</button>
+  </div>
+
+  <label for="approvalId">Approval ID (optional)</label>
+  <input id="approvalId" placeholder="Paste approval_id for destructive requests" />
+
+  <div class="row">
+    <button id="approveBtn">Approve</button>
+    <button id="rejectBtn">Reject</button>
+  </div>
+
+  <h2>Response</h2>
+  <pre id="output">No request sent yet.</pre>
+
+  <script>
+    const output = document.getElementById("output");
+
+    function show(data) {
+      output.textContent = JSON.stringify(data, null, 2);
+      if (data && data.request_id) {
+        document.getElementById("requestId").value = data.request_id;
+      }
+      if (data && data.approval_id) {
+        document.getElementById("approvalId").value = data.approval_id;
+      }
+    }
+
+    async function postJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return response.json();
+    }
+
+    async function getJson(url) {
+      const response = await fetch(url);
+      return response.json();
+    }
+
+    document.getElementById("submitBtn").onclick = async () => {
+      const query = document.getElementById("query").value.trim();
+      if (!query) {
+        show({ error: "query is required" });
+        return;
+      }
+      show(await postJson("/query", { query }));
+    };
+
+    document.getElementById("statusBtn").onclick = async () => {
+      const requestId = document.getElementById("requestId").value.trim();
+      if (!requestId) {
+        show({ error: "request_id is required" });
+        return;
+      }
+      show(await getJson(`/query/${requestId}`));
+    };
+
+    document.getElementById("approveBtn").onclick = async () => {
+      const approvalId = document.getElementById("approvalId").value.trim();
+      if (!approvalId) {
+        show({ error: "approval_id is required" });
+        return;
+      }
+      show(await postJson(`/approval/${approvalId}`, { decision: "approve" }));
+    };
+
+    document.getElementById("rejectBtn").onclick = async () => {
+      const approvalId = document.getElementById("approvalId").value.trim();
+      if (!approvalId) {
+        show({ error: "approval_id is required" });
+        return;
+      }
+      show(await postJson(`/approval/${approvalId}`, { decision: "reject" }));
+    };
+
+    document.getElementById("clearBtn").onclick = () => {
+      document.getElementById("query").value = "";
+      document.getElementById("requestId").value = "";
+      document.getElementById("approvalId").value = "";
+      output.textContent = "No request sent yet.";
+    };
+  </script>
+</body>
+</html>
