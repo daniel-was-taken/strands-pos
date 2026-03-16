@@ -66,11 +66,21 @@ Optional:
 
 ## Run
 
+### CLI
+
 ```bash
 python database_agent.py
 ```
 
 At the prompt, enter a database request. Type `exit` to quit.
+
+### Web UI
+
+```bash
+uvicorn server.api:app --reload
+```
+
+Then open `http://localhost:8000` in your browser.
 
 ## Example prompts
 
