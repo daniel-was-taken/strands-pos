@@ -20,6 +20,7 @@ def create_neon_mcp_client() -> MCPClient:
         lambda: streamable_http_client(
             NEON_MCP_URL,
             http_client=httpx.AsyncClient(
+                timeout=60.0,
                 headers={"Authorization": f"Bearer {api_key}"}
             ),
         ),
