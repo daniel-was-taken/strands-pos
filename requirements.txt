@@ -1,7 +1,8 @@
-strands-agents 
+strands-agents[gemini]
 strands-agents-tools
-botocore[crt]
-uv   
+google-cloud-aiplatform
+google-cloud-secret-manager
+uv
 fastapi
 uvicorn
 psycopg2-binary

@@ -1,4 +1,6 @@
 from strands import Agent, tool
+from strands.models.gemini import GeminiModel
+
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 
@@ -18,7 +20,7 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_insert_tool(mcp_client):
+def create_insert_tool(mcp_client, model: GeminiModel):
     @tool
     def insert_assistant(query: str) -> str:
         """Process and respond to insert requests."""
@@ -35,6 +37,7 @@ def create_insert_tool(mcp_client):
 
         print("Routed to Insert Assistant")
         agent = Agent(
+            model=model,
             system_prompt=INSERT_SYSTEM_PROMPT,
             tools=[mcp_client],
         )
