@@ -1,4 +1,5 @@
 from strands import Agent
+from strands.models.gemini import GeminiModel
 
 
 SAFETY_REVIEWER_SYSTEM_PROMPT = """
@@ -13,8 +14,8 @@ Output exactly one of:
 """
 
 
-def create_safety_reviewer() -> Agent:
-    return Agent(system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT)
+def create_safety_reviewer(model: GeminiModel) -> Agent:
+    return Agent(model=model, system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT)
 
 
 def review_delete_request(reviewer: Agent, query: str) -> tuple[bool, str]:

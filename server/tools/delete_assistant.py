@@ -1,4 +1,6 @@
 from strands import Agent, tool
+from strands.models.gemini import GeminiModel
+
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 
@@ -18,7 +20,7 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_delete_tool(mcp_client):
+def create_delete_tool(mcp_client, model: GeminiModel):
     @tool
     def delete_assistant(query: str) -> str:
         """Process and respond to delete requests."""
@@ -35,6 +37,7 @@ def create_delete_tool(mcp_client):
 
         print("Routed to Delete Assistant")
         agent = Agent(
+            model=model,
             system_prompt=DELETE_SYSTEM_PROMPT,
             tools=[mcp_client],
         )

@@ -1,4 +1,6 @@
 from strands import Agent, tool
+from strands.models.gemini import GeminiModel
+
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 
@@ -14,7 +16,7 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_schema_tool(mcp_client):
+def create_schema_tool(mcp_client, model: GeminiModel):
     @tool
     def schema_assistant(query: str) -> str:
         """Process and respond to read-only schema and data inspection queries.
@@ -38,6 +40,7 @@ def create_schema_tool(mcp_client):
 
         print("Routed to Schema Assistant")
         agent = Agent(
+            model=model,
             system_prompt=SCHEMA_SYSTEM_PROMPT,
             tools=[mcp_client],
         )

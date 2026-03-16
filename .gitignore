@@ -213,4 +213,10 @@ employees.sql.gz
 skills-lock.json
 .agents/skills/neon-postgres/SKILL.md
 output_log.txt
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
 notepad.txt

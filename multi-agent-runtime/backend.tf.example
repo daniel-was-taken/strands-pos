@@ -1,0 +1,9 @@
+# Copy this file to backend.tf and fill in the values for your environment.
+# The GCS bucket must already exist before running `terraform init`.
+
+terraform {
+  backend "gcs" {
+    bucket = "your-terraform-state-bucket"
+    prefix = "strands-pos/state"
+  }
+}
