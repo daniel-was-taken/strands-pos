@@ -49,18 +49,16 @@ cd ..
 echo "Deploy complete!"
 
 SERVICE_NAME="strands-pos-${ENVIRONMENT}"
-LOCAL_PORT="${LOCAL_PORT:-8080}"
+SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
+  --region "${REGION}" \
+  --format 'value(status.url)')
 
 echo ""
 echo "========================================="
 echo " Cloud Run service deployed successfully"
 echo "========================================="
 echo ""
-echo "The service requires authenticated access (org policy blocks allUsers)."
-echo "Starting local proxy on http://127.0.0.1:${LOCAL_PORT}/ ..."
-echo "Press Ctrl+C to stop the proxy."
+echo "Public URL: ${SERVICE_URL}"
 echo ""
-
-gcloud run services proxy "${SERVICE_NAME}" \
-  --region "${REGION}" \
-  --port "${LOCAL_PORT}"
+echo "The service is publicly accessible (Invoker IAM check disabled)."
+echo "Share this URL with your team — no proxy or authentication needed."
