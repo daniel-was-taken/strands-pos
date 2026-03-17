@@ -59,7 +59,8 @@ resource "google_project_iam_member" "vertexai_user" {
 resource "google_cloud_run_v2_service" "api_service" {
   name     = "strands-pos-${var.environment}"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  ingress              = "INGRESS_TRAFFIC_ALL"
+  invoker_iam_disabled = true
 
   template {
     service_account = google_service_account.cloudrun_sa.email
@@ -116,23 +117,10 @@ resource "google_cloud_run_v2_service" "api_service" {
 
 # Allow full unauthenticated access similar to ALB ingress rules.
 # The org policy (domain restricted sharing) blocks granting allUsers via IAM,
-# so we disable the Cloud Run Invoker IAM check instead.  This is Google's
-# recommended approach for public services in restricted orgs.
+# so we disable the Cloud Run Invoker IAM check instead (invoker_iam_disabled
+# on the service resource above).  This is Google's recommended approach for
+# public services in restricted orgs.
 # See: https://cloud.google.com/run/docs/authenticating/public
-resource "terraform_data" "public_access" {
-  depends_on = [google_cloud_run_v2_service.api_service]
-
-  input = google_cloud_run_v2_service.api_service.name
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      gcloud run services update ${google_cloud_run_v2_service.api_service.name} \
-        --region ${var.region} \
-        --project ${var.project_id} \
-        --no-invoker-iam-check
-    EOT
-  }
-}
 
 resource "google_cloud_run_v2_service_iam_member" "user_access" {
   count    = var.invoker_user_email == "" ? 0 : 1
