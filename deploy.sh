@@ -47,3 +47,20 @@ terraform apply \
 cd ..
 
 echo "Deploy complete!"
+
+SERVICE_NAME="strands-pos-${ENVIRONMENT}"
+LOCAL_PORT="${LOCAL_PORT:-8080}"
+
+echo ""
+echo "========================================="
+echo " Cloud Run service deployed successfully"
+echo "========================================="
+echo ""
+echo "The service requires authenticated access (org policy blocks allUsers)."
+echo "Starting local proxy on http://127.0.0.1:${LOCAL_PORT}/ ..."
+echo "Press Ctrl+C to stop the proxy."
+echo ""
+
+gcloud run services proxy "${SERVICE_NAME}" \
+  --region "${REGION}" \
+  --port "${LOCAL_PORT}"
