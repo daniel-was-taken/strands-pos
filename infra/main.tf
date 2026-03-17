@@ -114,29 +114,17 @@ resource "google_cloud_run_v2_service" "api_service" {
   ]
 }
 
-# Allow full unauthenticated access similar to ALB ingress rules.
-# The org policy (domain restricted sharing) blocks granting allUsers via IAM,
-# so we disable the Cloud Run Invoker IAM check instead.  This is Google's
-# recommended approach for public services in restricted orgs.
-# See: https://cloud.google.com/run/docs/authenticating/public
-#
-# NOTE: invoker_iam_disabled is not supported as a field on
-# google_cloud_run_v2_service in provider ~> 5.0, so we use a local-exec
-# provisioner to run the equivalent gcloud command.
-resource "terraform_data" "public_access" {
-  depends_on = [google_cloud_run_v2_service.api_service]
-
-  input = google_cloud_run_v2_service.api_service.name
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      gcloud run services update ${google_cloud_run_v2_service.api_service.name} \
-        --region ${var.region} \
-        --project ${var.project_id} \
-        --no-invoker-iam-check
-    EOT
-  }
-}
+# Allow full unauthenticated access similar to ALB ingress rules
+# DISABLED: org policy (constraints/run.managed.requireInvokerIam) enforces
+# the IAM invoker check on this project, blocking both allUsers IAM bindings
+# and the --no-invoker-iam-check / invoker_iam_disabled workarounds.
+# Use `gcloud run services proxy` locally to access the service.
+# resource "google_cloud_run_v2_service_iam_member" "public_access" {
+#   name     = google_cloud_run_v2_service.api_service.name
+#   location = google_cloud_run_v2_service.api_service.location
+#   role     = "roles/run.invoker"
+#   member   = "allUsers"
+# }
 
 resource "google_cloud_run_v2_service_iam_member" "user_access" {
   count    = var.invoker_user_email == "" ? 0 : 1
