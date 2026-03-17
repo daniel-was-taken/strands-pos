@@ -1,3 +1,11 @@
+# ---------------------------------------------------------
+# APIs
+# ---------------------------------------------------------
+resource "google_project_service" "vertex_ai" {
+  service            = "aiplatform.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_artifact_registry_repository" "repo" {
   location      = var.region
   repository_id = "strands-pos-${var.environment}"
@@ -41,6 +49,8 @@ resource "google_project_iam_member" "vertexai_user" {
   project = var.project_id
   role    = "roles/aiplatform.user"
   member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+
+  depends_on = [google_project_service.vertex_ai]
 }
 
 # ---------------------------------------------------------
@@ -99,7 +109,8 @@ resource "google_cloud_run_v2_service" "api_service" {
   }
 
   depends_on = [
-    google_secret_manager_secret_iam_member.secret_access
+    google_project_service.vertex_ai,
+    google_secret_manager_secret_iam_member.secret_access,
   ]
 }
 
