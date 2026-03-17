@@ -1,4 +1,6 @@
 from strands import Agent, tool
+
+from server.model import create_model
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 
@@ -38,6 +40,7 @@ def create_schema_tool(mcp_client):
 
         print("Routed to Schema Assistant")
         agent = Agent(
+            model=create_model(),
             system_prompt=SCHEMA_SYSTEM_PROMPT,
             tools=[mcp_client],
         )

@@ -70,7 +70,11 @@ def mock_agents():
 
     mock_mcp = MagicMock()
 
+    mock_model = MagicMock()
+
     with (
+        patch("server.model.create_model", return_value=mock_model),
+        patch("server.orchestrator.create_model", return_value=mock_model),
         patch("server.orchestrator.create_neon_mcp_client", return_value=mock_mcp),
         patch("server.orchestrator.create_safety_reviewer", return_value=mock_agent),
         patch("strands.Agent", return_value=mock_agent),

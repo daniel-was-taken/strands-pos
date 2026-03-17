@@ -36,6 +36,13 @@ resource "google_secret_manager_secret_iam_member" "secret_access" {
   member    = "serviceAccount:${google_service_account.cloudrun_sa.email}"
 }
 
+# Grant the Cloud Run service account access to Vertex AI
+resource "google_project_iam_member" "vertexai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+}
+
 # ---------------------------------------------------------
 # Cloud Run Service (Replaces ECS & ALB)
 # ---------------------------------------------------------
@@ -58,6 +65,16 @@ resource "google_cloud_run_v2_service" "api_service" {
 
       ports {
         container_port = 8000
+      }
+
+      # Vertex AI / Gemini configuration
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+      env {
+        name  = "GOOGLE_CLOUD_LOCATION"
+        value = var.region
       }
 
       # Mount secrets as environment variables
