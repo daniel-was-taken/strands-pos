@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 PROJECT_ID=$(gcloud config get-value project)
+INVOKER_USER_EMAIL=$(gcloud config get-value account)
 REGION="us-central1"
 ENVIRONMENT="production"
 IMAGE_NAME="strands-pos"
@@ -14,6 +15,7 @@ cd infra
 terraform init
 terraform apply \
   -var="project_id=${PROJECT_ID}" \
+  -var="invoker_user_email=${INVOKER_USER_EMAIL}" \
   -var="region=${REGION}" \
   -var="environment=${ENVIRONMENT}" \
   -var="container_image=us-docker.pkg.dev/cloudrun/container/hello" \
@@ -21,20 +23,23 @@ terraform apply \
 cd ..
 
 # 2. Build Docker Image
-echo "Building docker image..."
+echo "Building container image with Cloud Build..."
 IMAGE_TAG="us-central1-docker.pkg.dev/${PROJECT_ID}/strands-pos-${ENVIRONMENT}/${IMAGE_NAME}:latest"
-docker tag strands-pos:latest ${IMAGE_TAG} 2>/dev/null || docker build -t ${IMAGE_TAG} .
+gcloud builds submit \
+  --region "${REGION}" \
+  --default-buckets-behavior=regional-user-owned-bucket \
+  --tag "${IMAGE_TAG}" \
+  .
 
-# 3. Push Image to Artifact Registry
-echo "Pushing image to Artifact Registry..."
-gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-docker push ${IMAGE_TAG}
+# 3. Image is already pushed by Cloud Build
+echo "Image available in Artifact Registry: ${IMAGE_TAG}"
 
 # 4. Apply infrastructure again to deploy the real image
 echo "Deploying Cloud Run application..."
 cd infra
 terraform apply \
   -var="project_id=${PROJECT_ID}" \
+  -var="invoker_user_email=${INVOKER_USER_EMAIL}" \
   -var="region=${REGION}" \
   -var="environment=${ENVIRONMENT}" \
   -var="container_image=${IMAGE_TAG}" \

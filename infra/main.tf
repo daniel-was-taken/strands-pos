@@ -87,9 +87,18 @@ resource "google_cloud_run_v2_service" "api_service" {
 }
 
 # Allow full unauthenticated access similar to ALB ingress rules
-resource "google_cloud_run_v2_service_iam_member" "public_access" {
+# DISABLED: org policy blocks allUsers; use gcloud to grant access if needed
+# resource "google_cloud_run_v2_service_iam_member" "public_access" {
+#   name     = google_cloud_run_v2_service.api_service.name
+#   location = google_cloud_run_v2_service.api_service.location
+#   role     = "roles/run.invoker"
+#   member   = "allUsers"
+# }
+
+resource "google_cloud_run_v2_service_iam_member" "user_access" {
+  count    = var.invoker_user_email == "" ? 0 : 1
   name     = google_cloud_run_v2_service.api_service.name
   location = google_cloud_run_v2_service.api_service.location
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "user:${var.invoker_user_email}"
 }

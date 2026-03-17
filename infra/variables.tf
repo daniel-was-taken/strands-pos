@@ -20,3 +20,9 @@ variable "container_image" {
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
+
+variable "invoker_user_email" {
+  description = "User email to grant Cloud Run invoker access (leave empty to skip)."
+  type        = string
+  default     = ""
+}
