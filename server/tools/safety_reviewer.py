@@ -1,5 +1,7 @@
 from strands import Agent
 
+from server.model import create_model
+
 
 SAFETY_REVIEWER_SYSTEM_PROMPT = """
 You are SafetyReviewer, responsible for reviewing destructive database requests.
@@ -14,7 +16,7 @@ Output exactly one of:
 
 
 def create_safety_reviewer() -> Agent:
-    return Agent(system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT)
+    return Agent(model=create_model(), system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT)
 
 
 def review_delete_request(reviewer: Agent, query: str) -> tuple[bool, str]:

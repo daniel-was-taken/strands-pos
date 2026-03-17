@@ -1,6 +1,5 @@
-strands-agents 
+strands-agents[gemini]
 strands-agents-tools
-google-cloud-aiplatform
 google-cloud-secret-manager
 google-auth
 uv   

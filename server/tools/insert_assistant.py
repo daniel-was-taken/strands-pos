@@ -1,4 +1,6 @@
 from strands import Agent, tool
+
+from server.model import create_model
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 
@@ -35,6 +37,7 @@ def create_insert_tool(mcp_client):
 
         print("Routed to Insert Assistant")
         agent = Agent(
+            model=create_model(),
             system_prompt=INSERT_SYSTEM_PROMPT,
             tools=[mcp_client],
         )

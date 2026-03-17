@@ -4,6 +4,7 @@ from uuid import uuid4
 from strands import Agent
 from strands.tools.executors import SequentialToolExecutor
 
+from server.model import create_model
 from server.neon_mcp import create_neon_mcp_client
 from server.repository import (
     get_request_by_id,
@@ -40,8 +41,10 @@ Keep responses clear and actionable.
 
 class DatabaseOrchestrator:
     def __init__(self) -> None:
+        model = create_model()
         mcp_client = create_neon_mcp_client()
         self.database_agent = Agent(
+            model=model,
             system_prompt=DATABASE_SYSTEM_PROMPT,
             tool_executor=SequentialToolExecutor(),
             tools=[
