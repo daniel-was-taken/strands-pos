@@ -1,66 +1,61 @@
 #!/usr/bin/env bash
+# deploy.sh — Build, push, and deploy the Strands POS application to GCP.
+#
+# Prerequisites:
+#   1. gcloud CLI installed and authenticated (`gcloud auth login`)
+#   2. Terraform >= 1.5 installed
+#   3. A GCP project with billing enabled
+#
+# Usage:
+#   ./deploy.sh <project-id> [region] [github_owner] [github_repo] [github_branch]
+#
+# Example:
+#   ./deploy.sh my-gcp-project us-central1 my-org my-repo main
 
 set -euo pipefail
 
-PROJECT_ID=$(gcloud config get-value project)
-INVOKER_USER_EMAIL=$(gcloud config get-value account)
-REGION="us-central1"
+PROJECT_ID="${1:-$(gcloud config get-value project 2>/dev/null || echo "")}"
+REGION="${2:-us-central1}"
+GITHUB_OWNER="${3:-""}"
+GITHUB_REPO="${4:-""}"
+GITHUB_BRANCH="${5:-"main"}"
 ENVIRONMENT="production"
-IMAGE_NAME="strands-pos"
 
-echo "Deploying Strands POS to GCP ($ENVIRONMENT)"
+if [ -z "$PROJECT_ID" ]; then
+    echo "Error: PROJECT_ID is required."
+    echo "Usage: ./deploy.sh <project-id> [region]"
+    exit 1
+fi
 
-# 1. Init & apply basic infrastructure First to get Artifact Registry
-cd infra
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "==> Deploying Strands POS to GCP ($ENVIRONMENT)"
+
+echo "==> Initializing Terraform"
+cd "$SCRIPT_DIR/infra"
 terraform init
+
+echo "==> Applying Terraform (infrastructure only — creates registry, secrets, Cloud Run service, Cloud Build trigger)"
 terraform apply \
   -var="project_id=${PROJECT_ID}" \
-  -var="invoker_user_email=${INVOKER_USER_EMAIL}" \
   -var="region=${REGION}" \
   -var="environment=${ENVIRONMENT}" \
-  -var="container_image=us-docker.pkg.dev/cloudrun/container/hello" \
+  -var="github_owner=${GITHUB_OWNER}" \
+  -var="github_repo=${GITHUB_REPO}" \
+  -var="github_branch=${GITHUB_BRANCH}" \
   -auto-approve
-cd ..
-
-# 2. Build Docker Image
-echo "Building container image with Cloud Build..."
-IMAGE_TAG="us-central1-docker.pkg.dev/${PROJECT_ID}/strands-pos-${ENVIRONMENT}/${IMAGE_NAME}:latest"
-gcloud builds submit \
-  --region "${REGION}" \
-  --default-buckets-behavior=regional-user-owned-bucket \
-  --tag "${IMAGE_TAG}" \
-  .
-
-# 3. Image is already pushed by Cloud Build
-echo "Image available in Artifact Registry: ${IMAGE_TAG}"
-
-# 4. Apply infrastructure again to deploy the real image
-echo "Deploying Cloud Run application..."
-cd infra
-terraform apply \
-  -var="project_id=${PROJECT_ID}" \
-  -var="invoker_user_email=${INVOKER_USER_EMAIL}" \
-  -var="region=${REGION}" \
-  -var="environment=${ENVIRONMENT}" \
-  -var="container_image=${IMAGE_TAG}" \
-  -auto-approve
-cd ..
-
-echo "Deploy complete!"
-
-SERVICE_NAME="strands-pos-${ENVIRONMENT}"
-LOCAL_PORT="${LOCAL_PORT:-8080}"
 
 echo ""
 echo "========================================="
-echo " Cloud Run service deployed successfully"
+echo " Infrastructure Deployed Successfully!"
 echo "========================================="
 echo ""
-echo "The service requires authenticated access (org policy blocks allUsers)."
-echo "Starting local proxy on http://127.0.0.1:${LOCAL_PORT}/ ..."
-echo "Press Ctrl+C to stop the proxy."
+echo "To finish your setup:"
+echo "1. Set your Secret Manager values manually via GCP Console or CLI. Example:"
+echo "   echo -n 'your_db_url' | gcloud secrets versions add ${ENVIRONMENT}-strands-pos-DATABASE_URL --data-file=-"
+echo "2. Push code to your configured GitHub branch (${GITHUB_BRANCH}) to test the CI/CD pipeline."
 echo ""
-
-gcloud run services proxy "${SERVICE_NAME}" \
-  --region "${REGION}" \
-  --port "${LOCAL_PORT}"
+echo "Alternatively, for an immediate local deployment (if CI/CD is skipped), run:"
+echo "gcloud builds submit --region ${REGION} --tag \$(terraform output -raw artifact_registry_repo)/strands-pos:latest ."
+echo "gcloud run deploy strands-pos-${ENVIRONMENT} --image \$(terraform output -raw artifact_registry_repo)/strands-pos:latest --region ${REGION} --project ${PROJECT_ID} --quiet"

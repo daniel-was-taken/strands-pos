@@ -16,13 +16,31 @@ variable "environment" {
 }
 
 variable "container_image" {
-  description = "The container image to deploy (e.g. us-central1-docker.pkg.dev/project/repo/image:tag). Provide a default placeholder for initial setup."
+  description = "The container image to deploy. Provide a default placeholder for initial setup."
   type        = string
-  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+  default     = ""
 }
 
 variable "invoker_user_email" {
   description = "User email to grant Cloud Run invoker access (leave empty to skip)."
   type        = string
   default     = ""
+}
+
+variable "github_owner" {
+  description = "GitHub repository owner (user or org)."
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "GitHub repository name."
+  type        = string
+  default     = ""
+}
+
+variable "github_branch" {
+  description = "Branch that triggers Cloud Build."
+  type        = string
+  default     = "main"
 }

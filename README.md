@@ -32,6 +32,37 @@ Flow:
 
 This is still a multi-agent architecture: one orchestrator agent, three specialist database agents, and one safety reviewer agent.
 
+## Deployment to GCP
+
+This project deploys to Google Cloud via Terraform and Cloud Run.
+
+### 1. Prerequisites
+- GCP CLI (`gcloud`) installed and authenticated.
+- Terraform >= 1.5 installed.
+- A GCP project with billing enabled.
+
+### 2. Scaffold Infrastructure
+
+Run the deploy script to create the Artifact Registry, Cloud Build action, and Cloud Run service stub:
+```bash
+./deploy.sh <your-gcp-project-id> us-central1 <github_owner> <github_repo> <github_branch>
+```
+
+### 3. Bootstrap Secrets
+We use GCP Secret Manager explicitly to avoid storing plaintext in Terraform state.
+Before you can run the app, upload the secret versions via the GCP Console or CLI:
+```bash
+echo -n "..." | gcloud secrets versions add production-strands-pos-DATABASE_URL --data-file=-
+echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_API_KEY --data-file=-
+echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_PROJECT_ID --data-file=-
+echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_DATABASE --data-file=-
+echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_BRANCH --data-file=-
+```
+
+### 4. Deploy
+With the CI/CD pipeline set up, a simple push to the target GitHub branch will trigger a deployment.
+Alternatively, follow the CLI output hints from `./deploy.sh` to trigger a manual container build & deploy locally.
+
 ## Setup
 
 ### 1. Create and activate a virtual environment
