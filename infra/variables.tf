@@ -44,3 +44,9 @@ variable "github_branch" {
   type        = string
   default     = "main"
 }
+
+variable "enable_cicd" {
+  description = "Set to true once GitHub is connected in Cloud Build console to create the CI/CD trigger."
+  type        = bool
+  default     = false
+}

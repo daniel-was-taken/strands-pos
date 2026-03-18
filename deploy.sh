@@ -57,5 +57,5 @@ echo "   echo -n 'your_db_url' | gcloud secrets versions add ${ENVIRONMENT}-stra
 echo "2. Push code to your configured GitHub branch (${GITHUB_BRANCH}) to test the CI/CD pipeline."
 echo ""
 echo "Alternatively, for an immediate local deployment (if CI/CD is skipped), run:"
-echo "gcloud builds submit --region ${REGION} --tag \$(terraform output -raw artifact_registry_repo)/strands-pos:latest ."
+echo "gcloud builds submit --region ${REGION} --default-buckets-behavior=regional-user-owned-bucket --tag \$(terraform output -raw artifact_registry_repo)/strands-pos:latest ."
 echo "gcloud run deploy strands-pos-${ENVIRONMENT} --image \$(terraform output -raw artifact_registry_repo)/strands-pos:latest --region ${REGION} --project ${PROJECT_ID} --quiet"

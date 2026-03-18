@@ -13,6 +13,11 @@ variable "repository_url" {
   type        = string
 }
 
+variable "repository_id" {
+  description = "Artifact Registry repository ID."
+  type        = string
+}
+
 variable "image_name" {
   description = "Docker image name within the repository."
   type        = string
