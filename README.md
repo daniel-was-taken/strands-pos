@@ -63,6 +63,16 @@ echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_BRANCH -
 With the CI/CD pipeline set up, a simple push to the target GitHub branch will trigger a deployment.
 Alternatively, follow the CLI output hints from `./deploy.sh` to trigger a manual container build & deploy locally.
 
+### 5. Tear Down
+To free the sandbox resources later, use the destroy script with the same argument pattern:
+
+```bash
+./destroy.sh <your-gcp-project-id> us-central1 <github_owner> <github_repo> <github_branch>
+```
+
+### 6. Troubleshooting
+For the full deployment runbook, including the errors encountered during setup, recovery steps, and redeploy instructions, see [docs/gcp-deployment-troubleshooting.md](docs/gcp-deployment-troubleshooting.md).
+
 ## Setup
 
 ### 1. Create and activate a virtual environment

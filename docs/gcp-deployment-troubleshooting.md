@@ -298,6 +298,107 @@ If it does not stop cleanly:
 kill -9 <pid>
 ```
 
+## Freeing Sandbox Resources
+
+Use Terraform destroy from `infra/` with the same critical variables used during apply.
+
+Command:
+
+```bash
+cd infra
+terraform destroy \
+  -var="project_id=<gcp-project-id>" \
+  -var="region=us-central1" \
+  -var="environment=production" \
+  -var="container_image=$(terraform output -raw artifact_registry_repo)/strands-pos:latest" \
+  -var="github_owner=<github-owner>" \
+  -var="github_repo=<github-repo>" \
+  -var="github_branch=<deployment-branch>" \
+  -var="enable_cicd=true" \
+  -auto-approve
+```
+
+Expected resources removed:
+
+- Cloud Run service
+- Artifact Registry repository
+- Cloud Build trigger
+- Secret Manager secret containers
+- Service accounts and IAM bindings managed by Terraform
+
+Important caveats:
+
+- Terraform is configured with `disable_on_destroy = false` for required APIs, so enabling a service is not automatically reverted on destroy.
+- If Artifact Registry contains pushed images, repository deletion may fail until those images are removed.
+
+If Artifact Registry image cleanup is required:
+
+```bash
+gcloud artifacts docker images list us-central1-docker.pkg.dev/<gcp-project-id>/strands-pos-production
+gcloud artifacts docker images delete us-central1-docker.pkg.dev/<gcp-project-id>/strands-pos-production/strands-pos:latest --delete-tags --quiet
+```
+
+If you want to fully clean the sandbox after destroy, disable the APIs manually:
+
+```bash
+gcloud services disable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com iam.googleapis.com aiplatform.googleapis.com --project <gcp-project-id>
+```
+
+## Redeploying Later
+
+To deploy again after cleanup, follow this order.
+
+### 1. Recreate infrastructure
+
+```bash
+./deploy.sh <gcp-project-id> us-central1 <github-owner> <github-repo> <deployment-branch>
+```
+
+### 2. Repopulate Secret Manager versions
+
+Terraform recreates the secret containers, but not the secret values.
+
+```bash
+source .env
+
+echo -n "$DATABASE_URL" | gcloud secrets versions add production-strands-pos-DATABASE_URL --data-file=-
+echo -n "$NEON_API_KEY" | gcloud secrets versions add production-strands-pos-NEON_API_KEY --data-file=-
+echo -n "$NEON_PROJECT_ID" | gcloud secrets versions add production-strands-pos-NEON_PROJECT_ID --data-file=-
+echo -n "$NEON_DATABASE" | gcloud secrets versions add production-strands-pos-NEON_DATABASE --data-file=-
+echo -n "$NEON_BRANCH" | gcloud secrets versions add production-strands-pos-NEON_BRANCH --data-file=-
+```
+
+### 3. Build and push the container image
+
+```bash
+gcloud builds submit \
+  --region us-central1 \
+  --default-buckets-behavior=regional-user-owned-bucket \
+  --tag $(cd infra && terraform output -raw artifact_registry_repo)/strands-pos:latest \
+  .
+```
+
+### 4. Re-apply Terraform with the real image and CI/CD settings
+
+```bash
+cd infra
+terraform apply \
+  -var="project_id=<gcp-project-id>" \
+  -var="container_image=$(terraform output -raw artifact_registry_repo)/strands-pos:latest" \
+  -var="github_owner=<github-owner>" \
+  -var="github_repo=<github-repo>" \
+  -var="github_branch=<deployment-branch>" \
+  -var="enable_cicd=true" \
+  -auto-approve
+```
+
+### 5. Verify local access again
+
+```bash
+gcloud run services proxy strands-pos-production --region us-central1 --port 8080
+curl http://127.0.0.1:8080
+```
+
 ## Shareability Notes
 
 - `http://127.0.0.1:8080` is local-only and cannot be shared.
