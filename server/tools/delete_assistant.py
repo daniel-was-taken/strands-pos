@@ -1,8 +1,8 @@
 """Delete operations tool."""
 
-from server.tools.assistant_factory import create_assistant_tool
+from server.tools.assistant_factory import SHARED_PROMPT_SUFFIX, create_assistant_tool
 
-DELETE_SYSTEM_PROMPT = """
+DELETE_SYSTEM_PROMPT = f"""
 You are DeleteAssistant, responsible for delete operations on the database.
 
 You may inspect schema details before deleting data.
@@ -13,8 +13,7 @@ Use the available MCP tools for these tasks:
 
 Only perform delete operations or read-only checks needed to support a delete.
 Do not insert, update, alter, create, or drop database objects.
-
-Always query the actual database. Never fabricate schema information.
+{SHARED_PROMPT_SUFFIX}
 """
 
 

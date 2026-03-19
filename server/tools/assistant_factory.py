@@ -13,6 +13,12 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 2
 
+SHARED_PROMPT_SUFFIX = (
+    "\nIMPORTANT: Only consider tables from the 'public' and 'employees' schema.\n"
+    "Ignore all system/internal tables.\n\n"
+    "Always query the actual database. Never fabricate schema information.\n"
+)
+
 
 def create_assistant_tool(
     tool_name: str,
@@ -58,7 +64,7 @@ def create_assistant_tool(
             f"{allowed_ops}"
         )
 
-        print(f"Routed to {tool_name}")
+        logger.info("Routed to %s", tool_name)
         last_err: Exception | None = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:

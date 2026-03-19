@@ -36,12 +36,107 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     pre {
       background: #f5f5f5;
       border: 1px solid #ddd;
       padding: 12px;
       white-space: pre-wrap;
       word-break: break-word;
+    }
+
+    /* Activity Log */
+    #logPanel {
+      margin-top: 24px;
+    }
+
+    #logHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #logHeader button {
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+
+    #logEntries {
+      max-height: 360px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 12px;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+
+    .log-entry {
+      padding: 3px 0;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-ts {
+      color: #6a9955;
+      flex-shrink: 0;
+    }
+
+    .log-msg { flex: 1; }
+
+    .log-entry.info .log-msg { color: #d4d4d4; }
+    .log-entry.send .log-msg { color: #569cd6; }
+    .log-entry.ok .log-msg { color: #4ec9b0; }
+    .log-entry.warn .log-msg { color: #dcdcaa; }
+    .log-entry.error .log-msg { color: #f44747; }
+    .log-entry.pending .log-msg { color: #ce9178; }
+    .log-entry.debug .log-msg { color: #808080; }
+
+    .log-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .log-entry.info .log-badge  { background: #264f78; color: #9cdcfe; }
+    .log-entry.ok .log-badge    { background: #1e4d3d; color: #4ec9b0; }
+    .log-entry.warn .log-badge  { background: #4d3e00; color: #dcdcaa; }
+    .log-entry.error .log-badge { background: #5a1d1d; color: #f44747; }
+    .log-entry.send .log-badge  { background: #1e3a5f; color: #569cd6; }
+    .log-entry.debug .log-badge { background: #2a2a2a; color: #808080; }
+    .log-entry.pending .log-badge { background: #3d2b1e; color: #ce9178; }
+
+    #sseStatus {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+    #sseStatus.connected    { background: #1e4d3d; color: #4ec9b0; }
+    #sseStatus.disconnected { background: #5a1d1d; color: #f44747; }
+    #sseStatus.connecting   { background: #4d3e00; color: #dcdcaa; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .spinner {
+      display: inline-block;
+      animation: pulse 1.2s infinite;
     }
   </style>
 </head>
@@ -74,8 +169,122 @@
   <h2>Response</h2>
   <pre id="output">No request sent yet.</pre>
 
+  <div id="logPanel">
+    <div id="logHeader">
+      <h2>Server Console <span id="sseStatus" class="connecting">connecting</span></h2>
+      <button id="clearLogBtn">Clear Log</button>
+    </div>
+    <div id="logEntries"></div>
+  </div>
+
   <script>
     const output = document.getElementById("output");
+    const logEntries = document.getElementById("logEntries");
+    const sseStatus = document.getElementById("sseStatus");
+    const allButtons = document.querySelectorAll("#submitBtn, #statusBtn, #approveBtn, #rejectBtn");
+    const MAX_LOG_ENTRIES = 500;
+
+    // --- Log rendering ---
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function addLog(message, level = "info", badge = "") {
+      const entry = document.createElement("div");
+      entry.className = `log-entry ${level}`;
+      const badgeHtml = badge
+        ? `<span class="log-badge">${escapeHtml(badge)}</span>`
+        : "";
+      entry.innerHTML =
+        `<span class="log-ts">[${new Date().toLocaleTimeString("en-GB", { hour12: false })}]</span>` +
+        badgeHtml +
+        `<span class="log-msg">${escapeHtml(message)}</span>`;
+      logEntries.appendChild(entry);
+      // Trim oldest entries to avoid unbounded DOM growth.
+      while (logEntries.children.length > MAX_LOG_ENTRIES) {
+        logEntries.removeChild(logEntries.firstChild);
+      }
+      logEntries.scrollTop = logEntries.scrollHeight;
+    }
+
+    function addServerLog(data) {
+      const entry = document.createElement("div");
+      const level = data.level || "info";
+      entry.className = `log-entry ${level}`;
+      entry.innerHTML =
+        `<span class="log-ts">[${escapeHtml(data.ts)}]</span>` +
+        `<span class="log-badge">${escapeHtml(data.level.toUpperCase())}</span>` +
+        `<span class="log-msg">${escapeHtml(data.message)}</span>`;
+      logEntries.appendChild(entry);
+      while (logEntries.children.length > MAX_LOG_ENTRIES) {
+        logEntries.removeChild(logEntries.firstChild);
+      }
+      logEntries.scrollTop = logEntries.scrollHeight;
+    }
+
+    function addSpinnerLog(message) {
+      const entry = document.createElement("div");
+      entry.className = "log-entry pending";
+      entry.id = "active-spinner";
+      entry.innerHTML =
+        `<span class="log-ts">[${new Date().toLocaleTimeString("en-GB", { hour12: false })}]</span>` +
+        `<span class="log-badge">WAIT</span>` +
+        `<span class="log-msg"><span class="spinner">&#9679;</span> ${escapeHtml(message)}</span>`;
+      logEntries.appendChild(entry);
+      logEntries.scrollTop = logEntries.scrollHeight;
+    }
+
+    function removeSpinner() {
+      const el = document.getElementById("active-spinner");
+      if (el) el.remove();
+    }
+
+    document.getElementById("clearLogBtn").onclick = () => {
+      logEntries.innerHTML = "";
+      addLog("Log cleared", "info", "CLIENT");
+    };
+
+    // --- SSE: stream server-side logs ---
+
+    function connectSSE() {
+      sseStatus.textContent = "connecting";
+      sseStatus.className = "connecting";
+
+      const es = new EventSource("/logs/stream");
+
+      es.onopen = () => {
+        sseStatus.textContent = "connected";
+        sseStatus.className = "connected";
+      };
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          addServerLog(data);
+        } catch (_) {
+          // Ignore heartbeat comments or malformed data.
+        }
+      };
+
+      es.onerror = () => {
+        sseStatus.textContent = "disconnected";
+        sseStatus.className = "disconnected";
+        es.close();
+        // Reconnect after a short delay.
+        setTimeout(connectSSE, 3000);
+      };
+    }
+
+    connectSSE();
+
+    // --- Helpers ---
+
+    function setButtons(disabled) {
+      allButtons.forEach((b) => (b.disabled = disabled));
+    }
 
     function show(data) {
       output.textContent = JSON.stringify(data, null, 2);
@@ -93,48 +302,118 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: response.statusText }));
+        throw err;
+      }
       return response.json();
     }
 
     async function getJson(url) {
       const response = await fetch(url);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: response.statusText }));
+        throw err;
+      }
       return response.json();
     }
+
+    // --- Actions ---
 
     document.getElementById("submitBtn").onclick = async () => {
       const query = document.getElementById("query").value.trim();
       if (!query) {
         show({ error: "query is required" });
+        addLog("Submit aborted — query is empty", "warn", "CLIENT");
         return;
       }
-      show(await postJson("/query", { query }));
+      addLog(`Submitting query: "${query}"`, "send", "CLIENT");
+      addSpinnerLog("Waiting for server response…");
+      setButtons(true);
+      try {
+        const data = await postJson("/query", { query });
+        removeSpinner();
+        addLog("Response received", "ok", "CLIENT");
+        show(data);
+      } catch (err) {
+        removeSpinner();
+        addLog(`Request failed: ${err.detail || err.error || "unknown error"}`, "error", "CLIENT");
+        show(err);
+      } finally {
+        setButtons(false);
+      }
     };
 
     document.getElementById("statusBtn").onclick = async () => {
       const requestId = document.getElementById("requestId").value.trim();
       if (!requestId) {
         show({ error: "request_id is required" });
+        addLog("Status check aborted — request_id is empty", "warn", "CLIENT");
         return;
       }
-      show(await getJson(`/query/${requestId}`));
+      addLog(`Checking status for ${requestId}`, "send", "CLIENT");
+      addSpinnerLog("Fetching status…");
+      setButtons(true);
+      try {
+        const data = await getJson(`/query/${encodeURIComponent(requestId)}`);
+        removeSpinner();
+        addLog("Status retrieved", "ok", "CLIENT");
+        show(data);
+      } catch (err) {
+        removeSpinner();
+        addLog(`Status check failed: ${err.detail || err.error || "unknown error"}`, "error", "CLIENT");
+        show(err);
+      } finally {
+        setButtons(false);
+      }
     };
 
     document.getElementById("approveBtn").onclick = async () => {
       const approvalId = document.getElementById("approvalId").value.trim();
       if (!approvalId) {
         show({ error: "approval_id is required" });
+        addLog("Approve aborted — approval_id is empty", "warn", "CLIENT");
         return;
       }
-      show(await postJson(`/approval/${approvalId}`, { decision: "approve" }));
+      addLog(`Approving request (${approvalId})`, "send", "CLIENT");
+      addSpinnerLog("Processing approval…");
+      setButtons(true);
+      try {
+        const data = await postJson(`/approval/${encodeURIComponent(approvalId)}`, { decision: "approve" });
+        removeSpinner();
+        addLog("Approval processed", "ok", "CLIENT");
+        show(data);
+      } catch (err) {
+        removeSpinner();
+        addLog(`Approval failed: ${err.detail || err.error || "unknown error"}`, "error", "CLIENT");
+        show(err);
+      } finally {
+        setButtons(false);
+      }
     };
 
     document.getElementById("rejectBtn").onclick = async () => {
       const approvalId = document.getElementById("approvalId").value.trim();
       if (!approvalId) {
         show({ error: "approval_id is required" });
+        addLog("Reject aborted — approval_id is empty", "warn", "CLIENT");
         return;
       }
-      show(await postJson(`/approval/${approvalId}`, { decision: "reject" }));
+      addLog(`Rejecting request (${approvalId})`, "send", "CLIENT");
+      addSpinnerLog("Processing rejection…");
+      setButtons(true);
+      try {
+        const data = await postJson(`/approval/${encodeURIComponent(approvalId)}`, { decision: "reject" });
+        removeSpinner();
+        addLog("Rejection processed", "ok", "CLIENT");
+        show(data);
+      } catch (err) {
+        removeSpinner();
+        addLog(`Rejection failed: ${err.detail || err.error || "unknown error"}`, "error", "CLIENT");
+        show(err);
+      } finally {
+        setButtons(false);
+      }
     };
 
     document.getElementById("clearBtn").onclick = () => {
@@ -142,7 +421,10 @@
       document.getElementById("requestId").value = "";
       document.getElementById("approvalId").value = "";
       output.textContent = "No request sent yet.";
+      addLog("Cleared all fields", "info", "CLIENT");
     };
+
+    addLog("Console ready — streaming server logs", "ok", "CLIENT");
   </script>
 </body>
 </html>

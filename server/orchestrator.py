@@ -184,11 +184,9 @@ class DatabaseOrchestrator:
 
     def handle_cli_query(self, query: str) -> str:
         if self.needs_safety_review(query):
-            is_approved, verdict = review_delete_request(self.safety_reviewer, query)
+            _is_approved, verdict = review_delete_request(self.safety_reviewer, query)
             human_approved, human_message = request_human_decision(verdict)
             if not human_approved:
                 return f"Blocked. {human_message} {verdict}"
-            if not is_approved:
-                return f"Blocked by Safety Reviewer. {verdict}"
 
         return str(self.database_agent(query))

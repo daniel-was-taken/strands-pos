@@ -4,9 +4,11 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.responses import StreamingResponse
 
 load_dotenv()
 
+from server.log_stream import install_log_handler, log_event_generator
 from server.orchestrator import DatabaseOrchestrator
 from server.repository import get_connection, run_migrations
 from server.schemas import (
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    install_log_handler()
     logger.info("Running database migrations")
     run_migrations()
     logger.info("Migrations complete, starting server")
@@ -46,6 +49,15 @@ app = FastAPI(
 
 
 orchestrator = DatabaseOrchestrator()
+
+
+@app.get("/logs/stream")
+async def stream_logs() -> StreamingResponse:
+    return StreamingResponse(
+        log_event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/")

@@ -1,8 +1,8 @@
 """Insert operations tool."""
 
-from server.tools.assistant_factory import create_assistant_tool
+from server.tools.assistant_factory import SHARED_PROMPT_SUFFIX, create_assistant_tool
 
-INSERT_SYSTEM_PROMPT = """
+INSERT_SYSTEM_PROMPT = f"""
 You are InsertAssistant, responsible for insert operations on the database.
 
 You may inspect schema details before inserting data.
@@ -13,8 +13,7 @@ Use the available MCP tools for these tasks:
 
 Only perform insert operations or read-only checks needed to support an insert.
 Do not update, delete, alter, create, or drop database objects.
-
-Always query the actual database. Never fabricate schema information.
+{SHARED_PROMPT_SUFFIX}
 """
 
 

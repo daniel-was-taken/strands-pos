@@ -6,7 +6,7 @@ A specialized Strands agent that orchestrates database schema and management
 tasks through sub-agents sharing a single MCP connection.
 """
 
-import traceback
+import logging
 
 from dotenv import load_dotenv
 
@@ -36,7 +36,7 @@ def main():
             print("\n\nExecution interrupted. Exiting...")
             break
         except Exception:
-            traceback.print_exc()
+            logging.exception("Query failed")
             print("Please try asking a different question.")
 
 
