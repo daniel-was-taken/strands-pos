@@ -7,6 +7,11 @@ tasks through sub-agents sharing a single MCP connection.
 """
 
 import traceback
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from server.orchestrator import DatabaseOrchestrator
 
 

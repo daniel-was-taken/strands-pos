@@ -1,8 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
+
+load_dotenv()
 
 from server.orchestrator import DatabaseOrchestrator
 from server.repository import get_connection, run_migrations

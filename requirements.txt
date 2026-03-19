@@ -2,7 +2,7 @@ strands-agents[gemini]
 strands-agents-tools
 google-cloud-secret-manager
 google-auth
-uv   
+python-dotenv
 fastapi
 uvicorn
 psycopg2-binary

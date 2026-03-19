@@ -37,7 +37,7 @@ resource "google_secret_manager_secret" "neon_secrets" {
     "NEON_API_KEY",
     "NEON_PROJECT_ID",
     "NEON_DATABASE",
-    "NEON_BRANCH"
+    "NEON_BRANCH_ID"
   ])
 
   project   = var.project_id

@@ -56,7 +56,7 @@ echo -n "..." | gcloud secrets versions add production-strands-pos-DATABASE_URL 
 echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_API_KEY --data-file=-
 echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_PROJECT_ID --data-file=-
 echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_DATABASE --data-file=-
-echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_BRANCH --data-file=-
+echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_BRANCH_ID --data-file=-
 ```
 
 ### 4. Deploy
@@ -96,14 +96,21 @@ cp .env.example .env
 
 Set these values in `.env`:
 
+- `DATABASE_URL`
 - `NEON_API_KEY`
 - `NEON_PROJECT_ID`
 - `NEON_DATABASE`
-- `NEON_BRANCH`
+- `NEON_BRANCH_ID`
+
+For the Gemini model, set one of:
+
+- `GOOGLE_API_KEY` — for Google AI Studio (simplest for local dev)
+- `GOOGLE_CLOUD_PROJECT` + `GOOGLE_CLOUD_LOCATION` — for Vertex AI (requires `gcloud auth application-default login`)
 
 Optional:
 
 - `NEON_MCP_URL` if you need a non-default MCP endpoint
+- `GEMINI_MODEL_ID` to override the default model (`gemini-2.5-flash`)
 
 ## Run
 
@@ -125,8 +132,12 @@ Then open `http://localhost:8000` in your browser.
 
 ## Example prompts
 
-- Look at `sample_prompt.txt` for more details
-
+```
+Show me all tables in the database
+Describe the schema of the employees table
+Insert a new employee named John Doe with email john@example.com
+Delete the employee with id 5
+```
 
 ## Notes
 
@@ -138,9 +149,14 @@ Then open `http://localhost:8000` in your browser.
 ## File overview
 
 - `database_agent.py`: CLI entrypoint and top-level request router
-- `server/neon_mcp.py`: Neon MCP client factory and environment loading
-- `server/tools/safety_reviewer.py`: safety reviewer agent and human approval helper
-- `server/tools/schema_assistant.py`: factory for the schema/read-only tool
-- `server/tools/insert_assistant.py`: factory for the insert tool
-- `server/tools/delete_assistant.py`: factory for the delete tool
-- `sample_prompt.txt`: sample multi-intent prompts for manual testing
+- `server/api.py`: FastAPI web service (REST API + web UI)
+- `server/model.py`: Shared Gemini model configuration
+- `server/orchestrator.py`: Request routing, safety review, and approval workflow
+- `server/repository.py`: PostgreSQL persistence layer
+- `server/schemas.py`: Pydantic request/response models
+- `server/neon_mcp.py`: Neon MCP client factory
+- `server/tools/assistant_factory.py`: Shared factory for specialist database tools
+- `server/tools/safety_reviewer.py`: Safety reviewer agent and human approval helper
+- `server/tools/schema_assistant.py`: Read-only schema/SELECT tool
+- `server/tools/insert_assistant.py`: INSERT tool
+- `server/tools/delete_assistant.py`: DELETE tool

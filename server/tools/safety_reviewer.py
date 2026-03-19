@@ -1,4 +1,4 @@
-from strands import Agent
+from strands import Agent, tool
 
 from server.model import create_model
 
@@ -14,9 +14,17 @@ Output exactly one of:
 - REJECT: <short reason>
 """
 
+@tool
+def _dummy_tool() -> str:
+    """A placeholder tool to satisfy minimum tool requirements."""
+    return "ok"
 
 def create_safety_reviewer() -> Agent:
-    return Agent(model=create_model(), system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT)
+    return Agent(
+        model=create_model(),
+        system_prompt=SAFETY_REVIEWER_SYSTEM_PROMPT,
+        tools=[_dummy_tool],
+    )
 
 
 def review_delete_request(reviewer: Agent, query: str) -> tuple[bool, str]:

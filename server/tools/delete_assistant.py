@@ -1,8 +1,6 @@
-from strands import Agent, tool
+"""Delete operations tool."""
 
-from server.model import create_model
-from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
-
+from server.tools.assistant_factory import create_assistant_tool
 
 DELETE_SYSTEM_PROMPT = """
 You are DeleteAssistant, responsible for delete operations on the database.
@@ -20,27 +18,15 @@ Always query the actual database. Never fabricate schema information.
 """
 
 
-def create_delete_tool(mcp_client):
-    @tool
-    def delete_assistant(query: str) -> str:
-        """Process and respond to delete requests."""
-        formatted_query = (
+def create_delete_tool(mcp_client_factory):
+    return create_assistant_tool(
+        tool_name="delete_assistant",
+        tool_doc="Process and respond to delete requests.",
+        system_prompt=DELETE_SYSTEM_PROMPT,
+        query_prefix=(
             "Handle this database delete request, "
             "inspecting the target table first if needed: "
-            f"{query}\n\n"
-            f"Required connection details:\n"
-            f"- Project ID: {PROJECT_ID}\n"
-            f"- Database: {DATABASE}\n"
-            f"- Branch: {BRANCH}\n\n"
-            "Only execute DELETE statements and read-only verification queries."
-        )
-
-        print("Routed to Delete Assistant")
-        agent = Agent(
-            model=create_model(),
-            system_prompt=DELETE_SYSTEM_PROMPT,
-            tools=[mcp_client],
-        )
-        return str(agent(formatted_query))
-
-    return delete_assistant
+        ),
+        allowed_ops="Only execute DELETE statements and read-only verification queries.",
+        mcp_client_factory=mcp_client_factory,
+    )

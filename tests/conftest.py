@@ -14,7 +14,7 @@ def _mock_env(monkeypatch):
     monkeypatch.setenv("NEON_API_KEY", "test-key")
     monkeypatch.setenv("NEON_PROJECT_ID", "test-project")
     monkeypatch.setenv("NEON_DATABASE", "test-db")
-    monkeypatch.setenv("NEON_BRANCH", "main")
+    monkeypatch.setenv("NEON_BRANCH_ID", "main")
 
 
 @pytest.fixture()

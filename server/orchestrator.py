@@ -42,15 +42,14 @@ Keep responses clear and actionable.
 class DatabaseOrchestrator:
     def __init__(self) -> None:
         model = create_model()
-        mcp_client = create_neon_mcp_client()
         self.database_agent = Agent(
             model=model,
             system_prompt=DATABASE_SYSTEM_PROMPT,
             tool_executor=SequentialToolExecutor(),
             tools=[
-                create_schema_tool(mcp_client),
-                create_insert_tool(mcp_client),
-                create_delete_tool(mcp_client),
+                create_schema_tool(create_neon_mcp_client),
+                create_insert_tool(create_neon_mcp_client),
+                create_delete_tool(create_neon_mcp_client),
             ],
         )
         self.safety_reviewer = create_safety_reviewer()
