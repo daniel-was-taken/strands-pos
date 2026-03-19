@@ -1,4 +1,9 @@
-strands-agents 
+strands-agents[gemini]
 strands-agents-tools
-"botocore[crt]"
-uv   
+google-cloud-secret-manager
+google-auth
+python-dotenv
+fastapi
+uvicorn
+psycopg2-binary
+httpx

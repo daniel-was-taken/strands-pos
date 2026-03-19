@@ -1,8 +1,8 @@
-from strands import Agent, tool
-from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
+"""Insert operations tool."""
 
+from server.tools.assistant_factory import SHARED_PROMPT_SUFFIX, create_assistant_tool
 
-INSERT_SYSTEM_PROMPT = """
+INSERT_SYSTEM_PROMPT = f"""
 You are InsertAssistant, responsible for insert operations on the database.
 
 You may inspect schema details before inserting data.
@@ -13,31 +13,19 @@ Use the available MCP tools for these tasks:
 
 Only perform insert operations or read-only checks needed to support an insert.
 Do not update, delete, alter, create, or drop database objects.
-
-Always query the actual database. Never fabricate schema information.
+{SHARED_PROMPT_SUFFIX}
 """
 
 
-def create_insert_tool(mcp_client):
-    @tool
-    def insert_assistant(query: str) -> str:
-        """Process and respond to insert requests."""
-        formatted_query = (
+def create_insert_tool(mcp_client_factory):
+    return create_assistant_tool(
+        tool_name="insert_assistant",
+        tool_doc="Process and respond to insert requests.",
+        system_prompt=INSERT_SYSTEM_PROMPT,
+        query_prefix=(
             "Handle this database insert request, "
             "inspecting the target table first if needed: "
-            f"{query}\n\n"
-            f"Required connection details:\n"
-            f"- Project ID: {PROJECT_ID}\n"
-            f"- Database: {DATABASE}\n"
-            f"- Branch: {BRANCH}\n\n"
-            "Only execute INSERT statements and read-only verification queries."
-        )
-
-        print("Routed to Insert Assistant")
-        agent = Agent(
-            system_prompt=INSERT_SYSTEM_PROMPT,
-            tools=[mcp_client],
-        )
-        return str(agent(formatted_query))
-
-    return insert_assistant
+        ),
+        allowed_ops="Only execute INSERT statements and read-only verification queries.",
+        mcp_client_factory=mcp_client_factory,
+    )

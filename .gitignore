@@ -213,3 +213,9 @@ employees.sql.gz
 skills-lock.json
 .agents/skills/neon-postgres/SKILL.md
 output_log.txt
+notepad.txt
+infra/.terraform/providers/registry.terraform.io/hashicorp/google/5.45.2/darwin_arm64/terraform-provider-google_v5.45.2_x5
+.DS_Store
+infra/terraform.tfstate.backup
+.gitignore
+infra/terraform.tfstate

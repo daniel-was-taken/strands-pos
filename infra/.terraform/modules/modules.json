@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"artifact_registry","Source":"./modules/artifact-registry","Dir":"modules/artifact-registry"},{"Key":"cloudbuild_pipeline","Source":"./modules/cloudbuild-pipeline","Dir":"modules/cloudbuild-pipeline"},{"Key":"cloudrun_runtime","Source":"./modules/cloudrun-runtime","Dir":"modules/cloudrun-runtime"}]}
