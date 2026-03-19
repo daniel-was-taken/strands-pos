@@ -1,3 +1,5 @@
+"""Request routing, safety review, and approval workflow for database queries."""
+
 import logging
 from uuid import uuid4
 
@@ -40,6 +42,8 @@ Keep responses clear and actionable.
 
 
 class DatabaseOrchestrator:
+    """Routes queries to specialist agents with optional safety review."""
+
     def __init__(self) -> None:
         model = create_model()
         self.database_agent = Agent(
@@ -56,10 +60,12 @@ class DatabaseOrchestrator:
 
     @staticmethod
     def needs_safety_review(user_input: str) -> bool:
+        """Return *True* if the query contains destructive keywords."""
         words = set(user_input.lower().split())
         return bool(words & DESTRUCTIVE_KEYWORDS)
 
     def submit_query(self, query: str) -> dict:
+        """Accept a query, run safety review if needed, and return a status dict."""
         request_id = str(uuid4())
 
         if self.needs_safety_review(query):
@@ -122,6 +128,7 @@ class DatabaseOrchestrator:
         reviewer: str | None = None,
         reason: str | None = None,
     ) -> dict:
+        """Record a human approve/reject decision and execute if approved."""
         decision = decision.strip().lower()
 
         request_id = get_request_id_by_approval(approval_id)
@@ -169,6 +176,7 @@ class DatabaseOrchestrator:
         return {"error": "decision must be 'approve' or 'reject'"}
 
     def get_request(self, request_id: str) -> dict:
+        """Look up a request by ID and return its current state."""
         row = get_request_by_id(request_id)
         if row is None:
             return {"error": "request_id not found"}
@@ -183,6 +191,7 @@ class DatabaseOrchestrator:
         }
 
     def handle_cli_query(self, query: str) -> str:
+        """Interactive CLI flow — safety review with human prompt when needed."""
         if self.needs_safety_review(query):
             _is_approved, verdict = review_delete_request(self.safety_reviewer, query)
             human_approved, human_message = request_human_decision(verdict)

@@ -1,3 +1,8 @@
+"""Neon MCP client factory for connecting sub-agents to the Neon database.
+
+Required env vars: NEON_API_KEY, NEON_PROJECT_ID, NEON_DATABASE, NEON_BRANCH_ID.
+"""
+
 import os
 
 import httpx

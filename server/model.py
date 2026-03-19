@@ -1,4 +1,7 @@
-"""Shared Gemini model configuration for all Strands agents."""
+"""Shared Gemini model configuration for all Strands agents.
+
+Set GOOGLE_API_KEY for local dev, or use Vertex AI on GCP (ADC auto-detected).
+"""
 
 import os
 

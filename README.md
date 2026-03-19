@@ -130,6 +130,35 @@ uvicorn server.api:app --reload
 
 Then open `http://localhost:8000` in your browser.
 
+Interactive API docs are available at `http://localhost:8000/docs` (Swagger UI).
+
+## Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run only smoke / lifecycle / e2e tests
+pytest tests/test_smoke.py -v
+pytest tests/test_query_lifecycle.py -v
+pytest tests/test_approval_lifecycle.py -v
+pytest tests/test_e2e.py -v
+```
+
+All tests use mocked agents and an in-memory repository — no real database or LLM calls.
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Web UI |
+| `GET` | `/health` | Liveness check |
+| `GET` | `/ready` | Readiness check (verifies database) |
+| `POST` | `/query` | Submit a database query |
+| `GET` | `/query/{request_id}` | Poll query status / result |
+| `POST` | `/approval/{approval_id}` | Approve or reject a destructive query |
+| `GET` | `/logs/stream` | SSE stream of server logs |
+
 ## Example prompts
 
 ```

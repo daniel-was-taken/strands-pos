@@ -1,4 +1,7 @@
-"""Configuration and fixtures for tests."""
+"""Configuration and fixtures for tests.
+
+Run:  pytest tests/ -v
+"""
 
 import os
 from unittest.mock import MagicMock, patch

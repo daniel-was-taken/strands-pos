@@ -1,3 +1,9 @@
+"""FastAPI application — REST API and web UI for the database assistant.
+
+Run locally:  uvicorn server.api:app --reload
+API docs:     http://localhost:8000/docs
+"""
+
 import logging
 from contextlib import asynccontextmanager
 

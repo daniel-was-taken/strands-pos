@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Database Management Strands Agent
+Database Management Strands Agent — CLI entrypoint.
+
+Run:  python database_agent.py
 
 A specialized Strands agent that orchestrates database schema and management
 tasks through sub-agents sharing a single MCP connection.
