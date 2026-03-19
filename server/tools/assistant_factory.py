@@ -1,5 +1,6 @@
 """Factory for creating specialist database assistant tools."""
 
+import logging
 from collections.abc import Callable
 
 from strands import Agent, tool
@@ -7,6 +8,10 @@ from strands.tools.mcp import MCPClient
 
 from server.model import create_model
 from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
+
+logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 2
 
 
 def create_assistant_tool(
@@ -31,6 +36,17 @@ def create_assistant_tool(
         A @tool-decorated callable the orchestrator can invoke.
     """
 
+    def _run_with_mcp(formatted_query: str, system_prompt: str) -> str:
+        mcp_client = mcp_client_factory()
+        with mcp_client:
+            mcp_client._tool_provider_started = True
+            agent = Agent(
+                model=create_model(),
+                system_prompt=system_prompt,
+                tools=[mcp_client],
+            )
+            return str(agent(formatted_query))
+
     @tool(name=tool_name)
     def assistant(query: str) -> str:
         formatted_query = (
@@ -43,15 +59,19 @@ def create_assistant_tool(
         )
 
         print(f"Routed to {tool_name}")
-        mcp_client = mcp_client_factory()
-        with mcp_client:
-            mcp_client._tool_provider_started = True
-            agent = Agent(
-                model=create_model(),
-                system_prompt=system_prompt,
-                tools=[mcp_client],
-            )
-            return str(agent(formatted_query))
+        last_err: Exception | None = None
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                return _run_with_mcp(formatted_query, system_prompt)
+            except RuntimeError as exc:
+                if "Connection to the MCP server was closed" not in str(exc):
+                    raise
+                last_err = exc
+                logger.warning(
+                    "%s: MCP connection lost (attempt %d/%d), retrying with fresh client",
+                    tool_name, attempt, MAX_RETRIES,
+                )
+        raise last_err  # type: ignore[misc]
 
     assistant.__doc__ = tool_doc
     return assistant

@@ -76,7 +76,7 @@ resource "google_cloud_run_v2_service" "api_service" {
       }
     }
 
-    timeout = "30s"
+    timeout = "300s"
   }
 
   traffic {
