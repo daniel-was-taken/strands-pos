@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from server.orchestrator import DatabaseOrchestrator
+from server.core.orchestrator import DatabaseOrchestrator
 
 
 def main():

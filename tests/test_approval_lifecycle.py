@@ -6,7 +6,7 @@ from unittest.mock import patch
 def test_destructive_query_requires_approval(client):
     """Queries with destructive keywords should go to approval flow."""
     with patch(
-        "server.orchestrator.review_delete_request",
+        "server.core.orchestrator.review_delete_request",
         return_value=(True, "APPROVE: scoped delete"),
     ):
         resp = client.post(
@@ -22,7 +22,7 @@ def test_destructive_query_requires_approval(client):
 def test_approve_executes_query(client):
     """Approving a pending request should execute and complete it."""
     with patch(
-        "server.orchestrator.review_delete_request",
+        "server.core.orchestrator.review_delete_request",
         return_value=(True, "APPROVE: scoped delete"),
     ):
         submit = client.post(
@@ -44,7 +44,7 @@ def test_approve_executes_query(client):
 def test_reject_blocks_query(client):
     """Rejecting a pending request should mark it REJECTED."""
     with patch(
-        "server.orchestrator.review_delete_request",
+        "server.core.orchestrator.review_delete_request",
         return_value=(True, "APPROVE: scoped delete"),
     ):
         submit = client.post(
@@ -71,7 +71,7 @@ def test_unknown_approval_returns_404(client):
 def test_safety_reviewer_reject_sets_recommended_reject(client):
     """When the AI safety reviewer rejects, status should be RECOMMENDED_REJECT."""
     with patch(
-        "server.orchestrator.review_delete_request",
+        "server.core.orchestrator.review_delete_request",
         return_value=(False, "REJECT: too broad"),
     ):
         resp = client.post(

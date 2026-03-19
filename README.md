@@ -85,7 +85,11 @@ source .venv/bin/activate
 ### 2. Install dependencies
 
 ```bash
+# Production only
 pip install -r requirements.txt
+
+# Development (includes pytest)
+pip install -r requirements-dev.txt
 ```
 
 ### 3. Configure environment variables
@@ -175,17 +179,41 @@ Delete the employee with id 5
 - Safety review and human approval happen before destructive requests are executed.
 - This project is currently focused on schema inspection, inserts, and deletes.
 
-## File overview
+## Project structure
 
-- `database_agent.py`: CLI entrypoint and top-level request router
-- `server/api.py`: FastAPI web service (REST API + web UI)
-- `server/model.py`: Shared Gemini model configuration
-- `server/orchestrator.py`: Request routing, safety review, and approval workflow
-- `server/repository.py`: PostgreSQL persistence layer
-- `server/schemas.py`: Pydantic request/response models
-- `server/neon_mcp.py`: Neon MCP client factory
-- `server/tools/assistant_factory.py`: Shared factory for specialist database tools
-- `server/tools/safety_reviewer.py`: Safety reviewer agent and human approval helper
-- `server/tools/schema_assistant.py`: Read-only schema/SELECT tool
-- `server/tools/insert_assistant.py`: INSERT tool
-- `server/tools/delete_assistant.py`: DELETE tool
+```
+strands-pos/
+├── database_agent.py          # CLI entrypoint — python database_agent.py
+├── requirements.txt           # Production dependencies
+├── requirements-dev.txt       # Dev dependencies (includes pytest)
+├── Dockerfile                 # Container image for Cloud Run
+├── deploy.sh / destroy.sh     # GCP infrastructure lifecycle scripts
+├── server/
+│   ├── api.py                 # FastAPI app — uvicorn server.api:app --reload
+│   ├── schemas.py             # Pydantic request/response models
+│   ├── log_stream.py          # SSE log streaming to the web UI
+│   ├── static/index.html      # Web UI
+│   ├── core/                  # Business logic
+│   │   ├── model.py           # Shared Gemini model configuration
+│   │   └── orchestrator.py    # Request routing, safety review, approval workflow
+│   ├── db/                    # Data access layer
+│   │   ├── repository.py      # PostgreSQL persistence (requests + audit trail)
+│   │   └── neon_mcp.py        # Neon MCP client factory
+│   └── tools/                 # Agent tools
+│       ├── assistant_factory.py   # Shared factory for specialist database tools
+│       ├── safety_reviewer.py     # Safety reviewer agent + human approval
+│       ├── schema_assistant.py    # Read-only schema/SELECT tool
+│       ├── insert_assistant.py    # INSERT tool
+│       └── delete_assistant.py    # DELETE tool
+├── tests/                     # pytest tests/ -v (all mocked, no real DB/LLM)
+│   ├── conftest.py            # Shared fixtures
+│   ├── test_smoke.py          # Health + HTML serving
+│   ├── test_query_lifecycle.py    # Non-destructive query flow
+│   ├── test_approval_lifecycle.py # Destructive query + approval flow
+│   └── test_e2e.py            # Full end-to-end lifecycle
+├── infra/                     # Terraform IaC for GCP
+│   ├── main.tf / variables.tf / outputs.tf / providers.tf
+│   └── modules/               # artifact-registry, cloudrun-runtime, cloudbuild-pipeline
+└── docs/
+    └── gcp-deployment-troubleshooting.md
+```

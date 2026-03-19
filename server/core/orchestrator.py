@@ -6,9 +6,9 @@ from uuid import uuid4
 from strands import Agent
 from strands.tools.executors import SequentialToolExecutor
 
-from server.model import create_model
-from server.neon_mcp import create_neon_mcp_client
-from server.repository import (
+from server.core.model import create_model
+from server.db.neon_mcp import create_neon_mcp_client
+from server.db.repository import (
     get_request_by_id,
     get_request_id_by_approval,
     insert_audit_record,

@@ -4,7 +4,7 @@ import logging
 
 from strands import Agent, tool
 
-from server.model import create_model
+from server.core.model import create_model
 
 logger = logging.getLogger(__name__)
 

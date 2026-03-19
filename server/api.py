@@ -15,8 +15,8 @@ from starlette.responses import StreamingResponse
 load_dotenv()
 
 from server.log_stream import install_log_handler, log_event_generator
-from server.orchestrator import DatabaseOrchestrator
-from server.repository import get_connection, run_migrations
+from server.core.orchestrator import DatabaseOrchestrator
+from server.db.repository import get_connection, run_migrations
 from server.schemas import (
     ApprovalRequest,
     ApprovalResponse,

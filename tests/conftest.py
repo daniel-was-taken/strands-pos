@@ -57,10 +57,10 @@ def mock_repository():
         })
 
     with (
-        patch("server.orchestrator.upsert_request", side_effect=fake_upsert),
-        patch("server.orchestrator.get_request_by_id", side_effect=fake_get_by_id),
-        patch("server.orchestrator.get_request_id_by_approval", side_effect=fake_get_by_approval),
-        patch("server.orchestrator.insert_audit_record", side_effect=fake_audit),
+        patch("server.core.orchestrator.upsert_request", side_effect=fake_upsert),
+        patch("server.core.orchestrator.get_request_by_id", side_effect=fake_get_by_id),
+        patch("server.core.orchestrator.get_request_id_by_approval", side_effect=fake_get_by_approval),
+        patch("server.core.orchestrator.insert_audit_record", side_effect=fake_audit),
     ):
         yield {"store": store, "audit": audit}
 
@@ -76,11 +76,11 @@ def mock_agents():
     mock_model = MagicMock()
 
     with (
-        patch("server.model.create_model", return_value=mock_model),
-        patch("server.orchestrator.create_model", return_value=mock_model),
-        patch("server.orchestrator.create_neon_mcp_client", return_value=mock_mcp),
-        patch("server.orchestrator.create_safety_reviewer", return_value=mock_agent),
-        patch("server.orchestrator.Agent", return_value=mock_agent),
+        patch("server.core.model.create_model", return_value=mock_model),
+        patch("server.core.orchestrator.create_model", return_value=mock_model),
+        patch("server.core.orchestrator.create_neon_mcp_client", return_value=mock_mcp),
+        patch("server.core.orchestrator.create_safety_reviewer", return_value=mock_agent),
+        patch("server.core.orchestrator.Agent", return_value=mock_agent),
     ):
         yield mock_agent
 
@@ -88,7 +88,7 @@ def mock_agents():
 @pytest.fixture()
 def orchestrator(mock_repository, mock_agents):
     """Build an orchestrator with mocked deps."""
-    from server.orchestrator import DatabaseOrchestrator
+    from server.core.orchestrator import DatabaseOrchestrator
     return DatabaseOrchestrator()
 
 
@@ -96,8 +96,8 @@ def orchestrator(mock_repository, mock_agents):
 def client(mock_repository, mock_agents):
     """TestClient with fully mocked backend."""
     with (
-        patch("server.repository.run_migrations"),
-        patch("server.repository.get_connection"),
+        patch("server.db.repository.run_migrations"),
+        patch("server.db.repository.get_connection"),
     ):
         from server.api import app
         yield TestClient(app)

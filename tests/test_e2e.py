@@ -7,7 +7,7 @@ def test_full_destructive_query_flow(client):
     """Full lifecycle: submit destructive query → check status → approve → completed."""
     # 1. Submit a destructive query
     with patch(
-        "server.orchestrator.review_delete_request",
+        "server.core.orchestrator.review_delete_request",
         return_value=(True, "APPROVE: targeted delete"),
     ):
         submit_resp = client.post(

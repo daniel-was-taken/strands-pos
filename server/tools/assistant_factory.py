@@ -6,8 +6,8 @@ from collections.abc import Callable
 from strands import Agent, tool
 from strands.tools.mcp import MCPClient
 
-from server.model import create_model
-from server.neon_mcp import BRANCH, DATABASE, PROJECT_ID
+from server.core.model import create_model
+from server.db.neon_mcp import BRANCH, DATABASE, PROJECT_ID
 
 logger = logging.getLogger(__name__)
 
