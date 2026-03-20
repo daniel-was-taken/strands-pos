@@ -198,6 +198,29 @@ cython_debug/
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
+
+# ===================
+# Project-specific
+# ===================
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+
+# OS files
+.DS_Store
+*.swp
+
+# Data files
+*.sql.gz
+*.sql
+
+# Log files (already covered by *.log above but explicit)
+*.log
 .cursorignore
 .cursorindexingignore
 
@@ -219,3 +242,5 @@ infra/.terraform/providers/registry.terraform.io/hashicorp/google/5.45.2/darwin_
 infra/terraform.tfstate.backup
 .gitignore
 infra/terraform.tfstate
+Dockerfile
+strands-pos-restructure-prompt.md

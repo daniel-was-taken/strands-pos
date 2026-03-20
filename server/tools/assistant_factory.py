@@ -7,7 +7,7 @@ from strands import Agent, tool
 from strands.tools.mcp import MCPClient
 
 from server.core.model import create_model
-from server.db.neon_mcp import BRANCH, DATABASE, PROJECT_ID
+from server.db.neon_mcp import get_neon_connection_details
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +55,13 @@ def create_assistant_tool(
 
     @tool(name=tool_name)
     def assistant(query: str) -> str:
+        project_id, database, branch = get_neon_connection_details()
         formatted_query = (
             f"{query_prefix}{query}\n\n"
             f"Required connection details:\n"
-            f"- Project ID: {PROJECT_ID}\n"
-            f"- Database: {DATABASE}\n"
-            f"- Branch: {BRANCH}\n\n"
+            f"- Project ID: {project_id}\n"
+            f"- Database: {database}\n"
+            f"- Branch: {branch}\n\n"
             f"{allowed_ops}"
         )
 

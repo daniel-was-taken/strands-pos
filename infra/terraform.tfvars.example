@@ -1,0 +1,23 @@
+# GCP Project Configuration
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to version control
+
+project_id = ""          # Your GCP project ID
+
+region     = "us-central1"  # GCP region for resources
+
+environment = "production"  # Environment name (e.g., production, staging)
+
+# Container image - leave empty for initial setup (uses Google placeholder)
+# After first build, set to: <region>-docker.pkg.dev/<project_id>/strands-pos-<environment>/strands-pos:<tag>
+container_image = ""
+
+# Optional: Email address to grant Cloud Run invoker access
+invoker_user_email = ""
+
+# GitHub integration (for Cloud Build CI/CD)
+# Set enable_cicd = true only after connecting your repo in Cloud Build console
+github_owner  = ""
+github_repo   = ""
+github_branch = "main"
+enable_cicd   = false

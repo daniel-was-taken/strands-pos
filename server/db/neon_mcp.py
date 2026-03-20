@@ -1,30 +1,28 @@
-"""Neon MCP client factory for connecting sub-agents to the Neon database.
-
-Required env vars: NEON_API_KEY, NEON_PROJECT_ID, NEON_DATABASE, NEON_BRANCH_ID.
-"""
-
-import os
+"""Neon MCP client factory for connecting sub-agents to the Neon database."""
 
 import httpx
 from mcp.client.streamable_http import streamable_http_client
 from strands.tools.mcp import MCPClient
 
-PROJECT_ID = os.environ["NEON_PROJECT_ID"]
-DATABASE = os.environ["NEON_DATABASE"]
-BRANCH = os.environ["NEON_BRANCH_ID"]
+from server.config import get_settings
 
-NEON_MCP_URL = os.environ.get("NEON_MCP_URL", "https://mcp.neon.tech/mcp")
+
+def get_neon_connection_details() -> tuple[str, str, str]:
+    """Return (project_id, database, branch) for use in queries."""
+    s = get_settings()
+    return s.neon_project_id, s.neon_database, s.neon_branch_id
 
 
 def create_neon_mcp_client() -> MCPClient:
-    api_key = os.environ["NEON_API_KEY"]
+    """Create a fresh Neon MCP client instance."""
+    s = get_settings()
     return MCPClient(
         lambda: streamable_http_client(
-            NEON_MCP_URL,
+            s.neon_mcp_url,
             http_client=httpx.AsyncClient(
                 timeout=httpx.Timeout(120.0, connect=30.0),
                 limits=httpx.Limits(max_keepalive_connections=0),
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"Authorization": f"Bearer {s.neon_api_key}"}
             ),
         ),
     )

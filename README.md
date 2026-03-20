@@ -1,155 +1,129 @@
 # strands-pos
 
-Command-line database assistant built with Strands and Neon MCP.
+> Database assistant that routes natural-language requests to specialist agents
+> backed by a Neon PostgreSQL database via MCP.
 
-## What this project does
+## What It Does
 
-- Routes schema and read-only questions to `schema_assistant`
-- Routes insert requests to `insert_assistant`
-- Routes delete requests to `delete_assistant`
-- Runs a safety review + human approval step for destructive requests
-- Uses managed Neon MCP integration via `Agent(tools=[mcp_client])`
-- Executes routed tools sequentially through `SequentialToolExecutor`
+strands-pos accepts natural-language database requests via a REST API and routes them to the appropriate specialist agent. Destructive operations (DELETE, DROP, TRUNCATE) are intercepted by a safety reviewer and require explicit human approval before execution.
 
 ## Architecture
 
-The CLI creates one shared Neon `MCPClient` and the sub-agents use managed MCP lifecycle per invocation.
-
-Flow:
-
-1. User enters a request in `database_agent.py`
-2. If the request is destructive (for example contains delete/drop keywords), `safety_reviewer` evaluates it and a human must approve or reject
-3. The top-level `DBControl` agent routes to a specialized tool (`schema_assistant`, `insert_assistant`, or `delete_assistant`)
-4. The selected tool creates a fresh specialist `Agent` and runs with `tools=[mcp_client]`
-5. MCP tools (`get_database_tables`, `describe_table_schema`, `run_sql`) execute against Neon and return results
-
-- `database_agent.py` creates the top-level router agent
-- `server/neon_mcp.py` builds the shared Neon MCP client
-- `server/tools/safety_reviewer.py` creates the safety reviewer and handles human approval prompts
-- `server/tools/schema_assistant.py` creates the read-only schema tool
-- `server/tools/insert_assistant.py` creates the insert tool
-- `server/tools/delete_assistant.py` creates the delete tool
-
-This is still a multi-agent architecture: one orchestrator agent, three specialist database agents, and one safety reviewer agent.
-
-## Deployment to GCP
-
-This project deploys to Google Cloud via Terraform and Cloud Run.
-
-### 1. Prerequisites
-- GCP CLI (`gcloud`) installed and authenticated.
-- Terraform >= 1.5 installed.
-- A GCP project with billing enabled.
-
-### 2. Scaffold Infrastructure
-
-Run the deploy script to create the Artifact Registry, Cloud Build action, and Cloud Run service stub:
-```bash
-./deploy.sh <your-gcp-project-id> us-central1 <github_owner> <github_repo> <github_branch>
+```
+User Input (API/Web UI)
+      │
+      ▼
+ Orchestrator ──► Safety Reviewer (destructive ops only)
+      │                   │
+      ├──► Schema Agent    │ Rejected → abort
+      ├──► Insert Agent    │ Approved ↓
+      └──► Delete Agent ◄──┘
+             │
+             ▼
+       Neon MCP Client
+             │
+             ▼
+     Neon PostgreSQL
 ```
 
-### 3. Bootstrap Secrets
-We use GCP Secret Manager explicitly to avoid storing plaintext in Terraform state.
-Before you can run the app, upload the secret versions via the GCP Console or CLI:
-```bash
-echo -n "..." | gcloud secrets versions add production-strands-pos-DATABASE_URL --data-file=-
-echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_API_KEY --data-file=-
-echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_PROJECT_ID --data-file=-
-echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_DATABASE --data-file=-
-echo -n "..." | gcloud secrets versions add production-strands-pos-NEON_BRANCH_ID --data-file=-
-```
+## Prerequisites
 
-### 4. Deploy
-With the CI/CD pipeline set up, a simple push to the target GitHub branch will trigger a deployment.
-Alternatively, follow the CLI output hints from `./deploy.sh` to trigger a manual container build & deploy locally.
+- Python >= 3.11
+- Docker >= 24 (for containerized deployment)
+- GCP project with Cloud Run and Secret Manager APIs enabled (for production deployment)
+- Neon account + API key
 
-### 5. Tear Down
-To free the sandbox resources later, use the destroy script with the same argument pattern:
+## Quick Start (Local)
 
 ```bash
-./destroy.sh <your-gcp-project-id> us-central1 <github_owner> <github_repo> <github_branch>
-```
-
-### 6. Troubleshooting
-For the full deployment runbook, including the errors encountered during setup, recovery steps, and redeploy instructions, see [docs/gcp-deployment-troubleshooting.md](docs/gcp-deployment-troubleshooting.md).
-
-## Setup
-
-### 1. Create and activate a virtual environment
-
-```bash
+git clone https://github.com/your-org/strands-pos
+cd strands-pos
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
-# Production only
-pip install -r requirements.txt
-
-# Development (includes pytest)
-pip install -r requirements-dev.txt
-```
-
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-Set these values in `.env`:
-
-- `DATABASE_URL`
-- `NEON_API_KEY`
-- `NEON_PROJECT_ID`
-- `NEON_DATABASE`
-- `NEON_BRANCH_ID`
-
-For the Gemini model, set one of:
-
-- `GOOGLE_API_KEY` — for Google AI Studio (simplest for local dev)
-- `GOOGLE_CLOUD_PROJECT` + `GOOGLE_CLOUD_LOCATION` — for Vertex AI (requires `gcloud auth application-default login`)
-
-Optional:
-
-- `NEON_MCP_URL` if you need a non-default MCP endpoint
-- `GEMINI_MODEL_ID` to override the default model (`gemini-2.5-flash`)
-
-## Run
-
-### CLI
-
-```bash
-python database_agent.py
-```
-
-At the prompt, enter a database request. Type `exit` to quit.
-
-### Web UI
-
-```bash
+cp .env.example .env           # Edit with your credentials
+pip install -e ".[dev]"
 uvicorn server.api:app --reload
 ```
 
-Then open `http://localhost:8000` in your browser.
+Open http://localhost:8000 for the web UI, or http://localhost:8000/docs for API docs.
 
-Interactive API docs are available at `http://localhost:8000/docs` (Swagger UI).
+## Environment Variables
 
-## Tests
+| Variable               | Required | Default     | Description                          |
+|------------------------|----------|-------------|--------------------------------------|
+| `DATABASE_URL`         | Yes      | —           | PostgreSQL URL for request state     |
+| `NEON_API_KEY`         | Yes      | —           | Neon API key for MCP                 |
+| `NEON_PROJECT_ID`      | Yes      | —           | Neon project ID                      |
+| `NEON_DATABASE`        | Yes      | —           | Neon database name                   |
+| `NEON_BRANCH_ID`       | Yes      | —           | Neon branch ID                       |
+| `GOOGLE_API_KEY`       | No*      | —           | Gemini API key (local dev)           |
+| `GOOGLE_CLOUD_PROJECT` | No*      | —           | GCP project for Vertex AI            |
+| `GEMINI_MODEL_ID`      | No       | gemini-2.5-flash | Model ID                        |
+| `LOG_LEVEL`            | No       | INFO        | Logging verbosity                    |
+
+*Either `GOOGLE_API_KEY` or `GOOGLE_CLOUD_PROJECT` is needed for the LLM.
+
+## Commands
+
+| Command                        | Description                           |
+|--------------------------------|---------------------------------------|
+| `uvicorn server.api:app --reload` | Start the API server (dev)         |
+| `python database_agent.py`     | Start the CLI assistant               |
+| `pytest tests/ -v`             | Run all tests                         |
+| `ruff check server/`           | Lint                                  |
+| `mypy server/`                 | Type check                            |
+| `docker build -t strands-pos .`| Build container image                 |
+| `cd infra && terraform apply`  | Deploy infrastructure to GCP          |
+
+## Agents
+
+| Agent             | Responsibility                                    |
+|-------------------|---------------------------------------------------|
+| Orchestrator      | Routes requests to the correct specialist         |
+| Schema Assistant  | Read-only queries, schema introspection           |
+| Insert Assistant  | INSERT operations                                 |
+| Delete Assistant  | DELETE / DROP (always routed via Safety Reviewer) |
+| Safety Reviewer   | Flags destructive ops, requires human approval    |
+
+
+### Quick Deploy
+
+```bash
+# 1. Authenticate
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# 2. Enable APIs
+gcloud services enable run.googleapis.com secretmanager.googleapis.com
+
+# 3. Apply Terraform
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+terraform init
+terraform apply
+
+# 4. Populate secrets
+echo -n "postgresql://..." | gcloud secrets versions add production-strands-pos-DATABASE_URL --data-file=-
+# ... repeat for other secrets
+
+# 5. Build and push image
+docker build -t gcr.io/YOUR_PROJECT/strands-pos:latest .
+docker push gcr.io/YOUR_PROJECT/strands-pos:latest
+```
+
+## Documentation
+
+- [GCP Troubleshooting](docs/gcp-deployment-troubleshooting.md) — Deployment issues
+
+## Testing
 
 ```bash
 # Run all tests
 pytest tests/ -v
 
-# Run only smoke / lifecycle / e2e tests
-pytest tests/test_smoke.py -v
-pytest tests/test_query_lifecycle.py -v
-pytest tests/test_approval_lifecycle.py -v
-pytest tests/test_e2e.py -v
+# Tests use mocked agents — no real DB or LLM calls
 ```
-
-All tests use mocked agents and an in-memory repository — no real database or LLM calls.
 
 ## API Endpoints
 
@@ -163,57 +137,18 @@ All tests use mocked agents and an in-memory repository — no real database or 
 | `POST` | `/approval/{approval_id}` | Approve or reject a destructive query |
 | `GET` | `/logs/stream` | SSE stream of server logs |
 
-## Example prompts
-
-```
-Show me all tables in the database
-Describe the schema of the employees table
-Insert a new employee named John Doe with email john@example.com
-Delete the employee with id 5
-```
-
-## Notes
-
-- The top-level agent uses `SequentialToolExecutor` for deterministic routing.
-- Each assistant creates a fresh specialist `Agent` per call and uses `tools=[mcp_client]`.
-- Safety review and human approval happen before destructive requests are executed.
-- This project is currently focused on schema inspection, inserts, and deletes.
-
-## Project structure
+## Project Structure
 
 ```
 strands-pos/
-├── database_agent.py          # CLI entrypoint — python database_agent.py
-├── requirements.txt           # Production dependencies
-├── requirements-dev.txt       # Dev dependencies (includes pytest)
-├── Dockerfile                 # Container image for Cloud Run
-├── deploy.sh / destroy.sh     # GCP infrastructure lifecycle scripts
 ├── server/
-│   ├── api.py                 # FastAPI app — uvicorn server.api:app --reload
-│   ├── schemas.py             # Pydantic request/response models
-│   ├── log_stream.py          # SSE log streaming to the web UI
-│   ├── static/index.html      # Web UI
-│   ├── core/                  # Business logic
-│   │   ├── model.py           # Shared Gemini model configuration
-│   │   └── orchestrator.py    # Request routing, safety review, approval workflow
-│   ├── db/                    # Data access layer
-│   │   ├── repository.py      # PostgreSQL persistence (requests + audit trail)
-│   │   └── neon_mcp.py        # Neon MCP client factory
-│   └── tools/                 # Agent tools
-│       ├── assistant_factory.py   # Shared factory for specialist database tools
-│       ├── safety_reviewer.py     # Safety reviewer agent + human approval
-│       ├── schema_assistant.py    # Read-only schema/SELECT tool
-│       ├── insert_assistant.py    # INSERT tool
-│       └── delete_assistant.py    # DELETE tool
-├── tests/                     # pytest tests/ -v (all mocked, no real DB/LLM)
-│   ├── conftest.py            # Shared fixtures
-│   ├── test_smoke.py          # Health + HTML serving
-│   ├── test_query_lifecycle.py    # Non-destructive query flow
-│   ├── test_approval_lifecycle.py # Destructive query + approval flow
-│   └── test_e2e.py            # Full end-to-end lifecycle
-├── infra/                     # Terraform IaC for GCP
-│   ├── main.tf / variables.tf / outputs.tf / providers.tf
-│   └── modules/               # artifact-registry, cloudrun-runtime, cloudbuild-pipeline
-└── docs/
-    └── gcp-deployment-troubleshooting.md
+│   ├── api.py                 # FastAPI application
+│   ├── config/                # Centralized configuration
+│   ├── core/                  # Business logic (orchestrator, model)
+│   ├── db/                    # Data access (repository, MCP client)
+│   └── tools/                 # Specialist agents
+├── tests/                     # Pytest tests (all mocked)
+├── infra/                     # Terraform for GCP
+├── docs/                      # Documentation
+└── .github/workflows/         # CI/CD pipelines
 ```

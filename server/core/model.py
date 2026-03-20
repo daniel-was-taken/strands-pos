@@ -3,11 +3,9 @@
 Set GOOGLE_API_KEY for local dev, or use Vertex AI on GCP (ADC auto-detected).
 """
 
-import os
-
 from strands.models.gemini import GeminiModel
 
-MODEL_ID = os.environ.get("GEMINI_MODEL_ID", "gemini-2.5-flash")
+from server.config import get_settings
 
 
 def create_model() -> GeminiModel:
@@ -22,18 +20,19 @@ def create_model() -> GeminiModel:
       - run ``gcloud auth application-default login`` so that ADC is available
         and set GOOGLE_CLOUD_PROJECT + GOOGLE_CLOUD_LOCATION.
     """
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if api_key:
+    s = get_settings()
+
+    if s.google_api_key:
         return GeminiModel(
-            client_args={"api_key": api_key},
-            model_id=MODEL_ID,
+            client_args={"api_key": s.google_api_key},
+            model_id=s.gemini_model_id,
         )
 
     return GeminiModel(
         client_args={
             "vertexai": True,
-            "project": os.environ.get("GOOGLE_CLOUD_PROJECT"),
-            "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            "project": s.google_cloud_project,
+            "location": s.google_cloud_location,
         },
-        model_id=MODEL_ID,
+        model_id=s.gemini_model_id,
     )

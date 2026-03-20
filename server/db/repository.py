@@ -1,16 +1,12 @@
-"""Database repository for persisting request state and audit trail.
+"""Database repository for persisting request state and audit trail."""
 
-Requires env var: DATABASE_URL (PostgreSQL connection string).
-"""
-
-import os
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
 import psycopg2
 import psycopg2.extras
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+from server.config import get_settings
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS requests (
@@ -40,7 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_requests_approval_id
 
 @contextmanager
 def get_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(get_settings().database_url)
     try:
         yield conn
         conn.commit()
